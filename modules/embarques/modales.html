@@ -1,0 +1,325 @@
+<!-- MODAL VER EMBARQUE -->
+<div id="modalVer" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>👁️ Detalles del Embarque</h2>
+            <span class="close" onclick="cerrarModalVer()">&times;</span>
+        </div>
+        <div id="contenidoModalVer" class="loading">
+            Cargando...
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CREAR EMBARQUE -->
+<div id="modalCrear" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>➕ Crear Nuevo Embarque</h2>
+            <span class="close" onclick="cerrarModalCrear()">&times;</span>
+        </div>
+        <form id="formCrearEmbarque">
+            <div class="form-group">
+                <label>Cliente *</label>
+                <select id="crear_cliente_id" name="cliente_id" required onchange="cargarTrackingsCrear()">
+                    <option value="">Seleccionar cliente...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Trackings *</label>
+                <div id="crear_trackings_container" class="trackings-container">
+                    <div class="trackings-empty">Selecciona un cliente</div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>N° de Guía *</label>
+                    <input type="text" name="nro_guia" id="crear_nro_guia" required readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                    <small style="color: #7f8c8d; font-size: 0.85rem;">✨ Generado automáticamente</small>
+                </div>
+                <div class="form-group">
+                    <label>Valor USD *</label>
+                    <input type="number" name="valor_usd" step="0.01" min="0" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Proveedor(es)</label>
+                <input type="text" name="proveedor">
+            </div>
+
+            <div class="form-group">
+                <label>Contenido</label>
+                <textarea name="contenido"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Indicaciones</label>
+                <textarea name="indicaciones"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="cerrarModalCrear()" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL EDITAR EMBARQUE -->
+<div id="modalEditar" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✏️ Editar Embarque</h2>
+            <span class="close" onclick="cerrarModalEditar()">&times;</span>
+        </div>
+        <form id="formEditarEmbarque">
+            <input type="hidden" id="editar_id_guia" name="id_guia">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Proveedor(es)</label>
+                    <input type="text" name="proveedor" id="editar_proveedor">
+                </div>
+                <div class="form-group">
+                    <label>Valor USD *</label>
+                    <input type="number" name="valor_usd" id="editar_valor_usd" step="0.01" min="0" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Contenido</label>
+                <textarea name="contenido" id="editar_contenido"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Indicaciones</label>
+                <textarea name="indicaciones" id="editar_indicaciones"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Estado *</label>
+                <select name="estado" id="editar_estado" required>
+                    <option value="ACTIVO">ACTIVO</option>
+                    <option value="INACTIVO">INACTIVO</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="cerrarModalEditar()" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+.modal-content { background-color: white; margin: 3% auto; padding: 0; border-radius: 15px; max-width: 700px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+.modal-header { padding: 20px 30px; border-bottom: 2px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h2 { margin: 0; color: #2c3e50; font-size: 1.5rem; }
+.close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; transition: color 0.3s; }
+.close:hover { color: #000; }
+.modal-content form { padding: 30px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.trackings-container { background: #f8f9fa; border-radius: 8px; padding: 20px; min-height: 100px; max-height: 300px; overflow-y: auto; }
+.trackings-empty { text-align: center; color: #7f8c8d; padding: 30px; }
+.tracking-item { display: flex; gap: 10px; padding: 10px; background: white; border-radius: 5px; margin-bottom: 10px; }
+.tracking-item input[type="checkbox"] { width: 20px; height: 20px; }
+.tracking-info { flex: 1; }
+.tracking-code { font-weight: 600; color: #00296b; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
+.info-item { background: #f8f9fa; padding: 12px; border-radius: 8px; }
+.info-label { font-size: 0.75rem; color: #7f8c8d; font-weight: 600; margin-bottom: 5px; }
+.info-value { color: #2c3e50; font-size: 1rem; }
+</style>
+
+<script>
+// MODAL VER
+function abrirModalVer(id) {
+    document.getElementById('modalVer').style.display = 'block';
+    document.getElementById('contenidoModalVer').innerHTML = '<div class="loading">Cargando...</div>';
+
+    fetch(`obtener_embarque.php?id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const g = data.guia;
+                let html = `
+                    <div style="padding: 20px;">
+                        <div class="info-grid">
+                            <div class="info-item"><div class="info-label">N° GUÍA</div><div class="info-value">${g.nro_guia}</div></div>
+                            <div class="info-item"><div class="info-label">CLIENTE</div><div class="info-value">${g.nombre_completo}</div></div>
+                            <div class="info-item"><div class="info-label">DOCUMENTO</div><div class="info-value">${g.documento}</div></div>
+                            <div class="info-item"><div class="info-label">VALOR USD</div><div class="info-value">$${parseFloat(g.valor_usd).toFixed(2)}</div></div>
+                        </div>
+                        <div class="info-item" style="margin-top: 15px;"><div class="info-label">PROVEEDOR(ES)</div><div class="info-value">${g.proveedor || '—'}</div></div>
+                        <div class="info-item" style="margin-top: 15px;"><div class="info-label">CONTENIDO</div><div class="info-value">${g.contenido || '—'}</div></div>
+                        <div class="info-item" style="margin-top: 15px;"><div class="info-label">INDICACIONES</div><div class="info-value">${g.indicaciones || '—'}</div></div>
+                        <h3 style="margin-top: 20px;">Trackings (${data.trackings.length})</h3>`;
+
+                data.trackings.forEach(t => {
+                    html += `<div class="tracking-item">
+                        <div class="tracking-info">
+                            <div class="tracking-code">${t.tracking_code}</div>
+                            <div style="font-size: 0.85rem; color: #7f8c8d;">${t.nombre_archivo}</div>
+                        </div>
+                    </div>`;
+                });
+
+                html += `</div>`;
+                document.getElementById('contenidoModalVer').innerHTML = html;
+            }
+        });
+}
+
+function cerrarModalVer() {
+    document.getElementById('modalVer').style.display = 'none';
+}
+
+// MODAL CREAR
+function abrirModalCrear() {
+    document.getElementById('modalCrear').style.display = 'block';
+    cargarClientesCrear();
+    generarNumeroGuia();
+}
+
+function cerrarModalCrear() {
+    document.getElementById('modalCrear').style.display = 'none';
+    document.getElementById('formCrearEmbarque').reset();
+}
+
+function cargarClientesCrear() {
+    fetch('obtener_clientes.php')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('crear_cliente_id');
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            data.clientes.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.nombre_completo} - ${c.documento}</option>`;
+            });
+        });
+}
+
+function generarNumeroGuia() {
+    fetch('generar_numero_guia.php')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('crear_nro_guia').value = data.numero;
+        });
+}
+
+function cargarTrackingsCrear() {
+    const clienteId = document.getElementById('crear_cliente_id').value;
+    const container = document.getElementById('crear_trackings_container');
+
+    if (!clienteId) {
+        container.innerHTML = '<div class="trackings-empty">Selecciona un cliente</div>';
+        return;
+    }
+
+    container.innerHTML = '<div class="loading">Cargando...</div>';
+
+    fetch(`obtener_trackings_cliente.php?cliente_id=${clienteId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.trackings.length > 0) {
+                let html = '';
+                data.trackings.forEach(t => {
+                    html += `<div class="tracking-item">
+                        <input type="checkbox" name="trackings[]" value="${t.id}">
+                        <div class="tracking-info">
+                            <div class="tracking-code">${t.tracking_code}</div>
+                            <div style="font-size: 0.85rem; color: #7f8c8d;">${t.nombre_archivo}</div>
+                        </div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div class="trackings-empty">Sin trackings disponibles</div>';
+            }
+        });
+}
+
+document.getElementById('formCrearEmbarque').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch('guardar_embarque.php', {method: 'POST', body: formData})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Embarque creado exitosamente');
+                cerrarModalCrear();
+                location.reload();
+            } else {
+                alert('❌ ' + data.mensaje);
+            }
+        });
+});
+
+// MODAL EDITAR
+function abrirModalEditar(id) {
+    document.getElementById('modalEditar').style.display = 'block';
+    document.getElementById('editar_id_guia').value = id;
+
+    fetch(`obtener_embarque.php?id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const g = data.guia;
+                document.getElementById('editar_proveedor').value = g.proveedor || '';
+                document.getElementById('editar_valor_usd').value = g.valor_usd;
+                document.getElementById('editar_contenido').value = g.contenido || '';
+                document.getElementById('editar_indicaciones').value = g.indicaciones || '';
+                document.getElementById('editar_estado').value = g.estado;
+            }
+        });
+}
+
+function cerrarModalEditar() {
+    document.getElementById('modalEditar').style.display = 'none';
+}
+
+document.getElementById('formEditarEmbarque').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch('actualizar_embarque.php', {method: 'POST', body: formData})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Embarque actualizado exitosamente');
+                cerrarModalEditar();
+                location.reload();
+            } else {
+                alert('❌ ' + data.mensaje);
+            }
+        });
+});
+
+// ELIMINAR
+function eliminarEmbarque(id) {
+    if (!confirm('¿Está seguro de eliminar este embarque?')) return;
+
+    fetch(`eliminar_embarque.php?id=${id}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Embarque eliminado');
+                location.reload();
+            } else {
+                alert('❌ ' + data.mensaje);
+            }
+        });
+}
+
+// Cerrar modales al hacer click fuera
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+</script>
