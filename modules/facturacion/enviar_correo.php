@@ -50,15 +50,15 @@ try {
 
     $mail = new PHPMailer(true);
     $mail->isSMTP();
-    $mail->Host       = 'smtp.gmail.com';
+    $mail->Host       = 'ifast.com.pe';
     $mail->SMTPAuth   = true;
-    $mail->Username   = 'ventasifast2@gmail.com';
-    $mail->Password   = 'hbld olsj vghe ofvs';
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port       = 587;
+    $mail->Username   = 'facturacion@ifast.com.pe';
+    $mail->Password   = 'B#mmQYyp@=;kSARF';
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+    $mail->Port       = 465;
     $mail->CharSet    = 'UTF-8';
 
-    $mail->setFrom('ventasifast2@gmail.com', 'IFAST - Sistema de Facturación');
+    $mail->setFrom('facturacion@ifast.com.pe', 'IFAST - Sistema de Facturación');
 
     // Agregar destinatarios
     $correos_array = array_map('trim', explode(',', $correos_destino));

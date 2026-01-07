@@ -45,15 +45,15 @@ try {
 
     $mail = new PHPMailer(true);
     $mail->isSMTP();
-    $mail->Host       = 'smtp.gmail.com';
+    $mail->Host       = 'ifast.com.pe';
     $mail->SMTPAuth   = true;
-    $mail->Username   = 'ventasifast2@gmail.com';
-    $mail->Password   = 'hbld olsj vghe ofvs';
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port       = 587;
+    $mail->Username   = 'ventas@ifast.com.pe';
+    $mail->Password   = '*VO=ndl*&PB0e&L6';
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+    $mail->Port       = 465;
     $mail->CharSet    = 'UTF-8';
 
-    $mail->setFrom('ventasifast2@gmail.com', 'IFAST - Sistema de Embarques');
+    $mail->setFrom('ventas@ifast.com.pe', 'IFAST - Sistema de Embarques');
 
     $correos_array = array_map('trim', explode(',', $correos_destino));
     foreach ($correos_array as $correo) {
