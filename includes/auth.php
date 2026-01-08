@@ -29,7 +29,7 @@ function tienePermiso($roles_permitidos = []) {
 // Función para requerir login
 function requiereLogin() {
     if (!estaLogueado()) {
-        header("Location: /index.php");
+        header("Location: /ifast_web/index.php");
         exit();
     }
 }
@@ -39,7 +39,7 @@ function requierePermiso($roles_permitidos = []) {
     requiereLogin();
 
     if (!tienePermiso($roles_permitidos)) {
-        header("Location: /dashboard.php?error=sin_permiso");
+        header("Location: /ifast_web/dashboard.php?error=sin_permiso");
         exit();
     }
 }
@@ -77,7 +77,7 @@ function login($email, $password, $conn) {
 function logout() {
     session_unset();
     session_destroy();
-    header("Location: /index.php");
+    header("Location: /ifast_web/index.php");
     exit();
 }
 
