@@ -288,7 +288,7 @@ $nombre_usuario = obtenerNombreUsuario();
 
                     <div class="stat-card">
                         <div class="stat-icon purple">
-                            <box-icon name='file-doc' type='solid' flip='horizontal' ></box-icon>
+                            <box-icon name='file' type='solid' flip='horizontal' ></box-icon>
                         </div>
                         <div class="stat-details">
                             <h3><?php echo $stats['total_archivos']; ?></h3>
@@ -344,8 +344,5 @@ $nombre_usuario = obtenerNombreUsuario();
             </div>
         </main>
     </div>
-    
-
- <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
 </body>
 </html>
