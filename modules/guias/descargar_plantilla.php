@@ -9,8 +9,8 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-// Solo ADMIN puede descargar plantilla
-requierePermiso(['ADMIN']);
+// Solo ADMIN y SUPERVISOR pueden descargar plantilla
+requierePermiso(['ADMIN', 'SUPERVISOR']);
 
 // Crear nuevo spreadsheet
 $spreadsheet = new Spreadsheet();

@@ -3,7 +3,7 @@ require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
 
-requierePermiso(['ADMIN', 'VENTAS']);
+requierePermiso(['ADMIN', 'SUPERVISOR', 'VENTAS']);
 
 $database = new Database();
 $conn = $database->getConnection();

@@ -3,8 +3,8 @@ require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
 
-// Solo ADMIN puede crear
-requierePermiso(['ADMIN']);
+// Solo ADMIN y SUPERVISOR pueden crear
+requierePermiso(['ADMIN', 'SUPERVISOR']);
 
 $database = new Database();
 $conn = $database->getConnection();

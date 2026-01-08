@@ -4,8 +4,8 @@ require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
 
-// Solo ADMIN y VENTAS pueden crear
-requierePermiso(['ADMIN', 'VENTAS']);
+// Solo ADMIN, SUPERVISOR y VENTAS pueden crear
+requierePermiso(['ADMIN', 'SUPERVISOR', 'VENTAS']);
 
 $database = new Database();
 $conn = $database->getConnection();

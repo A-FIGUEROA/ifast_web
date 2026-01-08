@@ -2,8 +2,8 @@
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-// Solo ADMIN puede eliminar
-requierePermiso(['ADMIN']);
+// Solo ADMIN y SUPERVISOR pueden eliminar
+requierePermiso(['ADMIN', 'SUPERVISOR']);
 
 $database = new Database();
 $conn = $database->getConnection();

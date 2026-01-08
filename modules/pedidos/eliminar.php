@@ -2,7 +2,7 @@
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-requierePermiso(['ADMIN', 'VENTAS']);
+requierePermiso(['ADMIN', 'SUPERVISOR', 'VENTAS']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 

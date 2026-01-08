@@ -7,8 +7,8 @@ require_once '../../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-// Solo ADMIN y VENTAS pueden importar
-requierePermiso(['ADMIN', 'VENTAS']);
+// Solo ADMIN, SUPERVISOR y VENTAS pueden importar
+requierePermiso(['ADMIN', 'SUPERVISOR', 'VENTAS']);
 
 header('Content-Type: application/json');
 
@@ -19,11 +19,11 @@ $conn = $database->getConnection();
 $usuario_id = $_SESSION['usuario_id'];
 
 try {
-    if (!isset($_FILES['archivo_excel'])) {
+    if (!isset($_FILES['archivo'])) {
         throw new Exception('No se recibió ningún archivo');
     }
 
-    $archivo = $_FILES['archivo_excel'];
+    $archivo = $_FILES['archivo'];
 
     // Validar errores de subida
     if ($archivo['error'] !== UPLOAD_ERR_OK) {

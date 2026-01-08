@@ -3,8 +3,8 @@ require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
 
-// Solo ADMIN y VENTAS pueden cargar Excel
-requierePermiso(['ADMIN', 'VENTAS']);
+// Solo ADMIN, SUPERVISOR y VENTAS pueden cargar Excel
+requierePermiso(['ADMIN', 'SUPERVISOR', 'VENTAS']);
 
 $tipo_usuario = obtenerTipoUsuario();
 $nombre_usuario = obtenerNombreUsuario();

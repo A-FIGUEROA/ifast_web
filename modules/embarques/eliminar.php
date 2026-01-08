@@ -2,7 +2,7 @@
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-requierePermiso(['ADMIN']);
+requierePermiso(['ADMIN', 'SUPERVISOR']);
 
 $database = new Database();
 $conn = $database->getConnection();

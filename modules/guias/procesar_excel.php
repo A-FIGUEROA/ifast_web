@@ -6,8 +6,8 @@ require_once '../../vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-// Solo ADMIN puede procesar Excel
-requierePermiso(['ADMIN']);
+// Solo ADMIN y SUPERVISOR pueden procesar Excel
+requierePermiso(['ADMIN', 'SUPERVISOR']);
 
 header('Content-Type: application/json');
 
