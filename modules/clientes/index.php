@@ -651,7 +651,7 @@ $clientes = $stmt->fetchAll();
                                 <a href="index.php" class="btn btn-back">Limpiar</a>
                                 <?php endif; ?>
                             </form>
-                            <?php if ($tipo_usuario !== 'SUPERVISOR'): ?>
+                            <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
                             <a href="cargar_excel.php" class="btn btn-excel">📊 Importar Excel</a>
                             <button onclick="abrirModalCrear()" class="btn btn-primary">+ Nuevo Cliente</button>
                             <?php endif; ?>
@@ -707,12 +707,12 @@ $clientes = $stmt->fetchAll();
                                            class="btn btn-small btn-files" title="Archivos">
                                            📄
                                         </a>
-                                        <?php if ($tipo_usuario !== 'SUPERVISOR'): ?>
+                                        <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
                                         <button onclick="abrirModalEditar(<?php echo $cliente['id']; ?>)"
                                            class="btn btn-small btn-edit" title="Editar">
                                            ✏️
                                         </button>
-                                        <a href="eliminar.php?id=<?php echo $cliente['id']; ?>" 
+                                        <a href="eliminar.php?id=<?php echo $cliente['id']; ?>"
                                            class="btn btn-small btn-delete" title="Eliminar"
                                            onclick="return confirm('¿Eliminar este cliente y todos sus archivos?')">
                                            🗑️

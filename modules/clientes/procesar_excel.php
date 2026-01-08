@@ -180,12 +180,11 @@ try {
 
         echo json_encode([
             'success' => true,
-            'preview' => true,
+            'preview' => $preview_validos,
+            'errores' => $preview_errores,
             'total_registros' => count($registros_validos) + count($registros_error),
-            'total_validos' => count($registros_validos),
-            'total_errores' => count($registros_error),
-            'registros_validos' => $preview_validos,
-            'registros_error' => $preview_errores,
+            'registros_validos' => count($registros_validos),
+            'registros_error' => count($registros_error),
             'nombre_archivo' => $archivo['name']
         ]);
         exit();

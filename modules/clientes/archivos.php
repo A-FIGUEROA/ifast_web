@@ -381,7 +381,7 @@ $archivos = $stmt->fetchAll();
             </div>
             <?php endif; ?>
 
-            <?php if ($tipo_usuario !== 'SUPERVISOR'): ?>
+            <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
             <!-- Upload Section -->
             <div class="upload-section">
                 <h3>📤 Subir Nuevo Archivo</h3>
@@ -422,12 +422,12 @@ $archivos = $stmt->fetchAll();
                         <p>Subido: <?php echo formatearFecha($archivo['subido_en']); ?></p>
                     </div>
                     <div class="file-actions">
-                        <a href="descargar.php?id=<?php echo $archivo['id']; ?>" 
+                        <a href="descargar.php?id=<?php echo $archivo['id']; ?>"
                            class="btn btn-small btn-download" title="Descargar">
                            ⬇️
                         </a>
-                        <?php if ($tipo_usuario !== 'SUPERVISOR'): ?>
-                        <a href="?cliente_id=<?php echo $cliente_id; ?>&eliminar_archivo=<?php echo $archivo['id']; ?>" 
+                        <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
+                        <a href="?cliente_id=<?php echo $cliente_id; ?>&eliminar_archivo=<?php echo $archivo['id']; ?>"
                            class="btn btn-small btn-delete" title="Eliminar"
                            onclick="return confirm('¿Eliminar este archivo?')">
                            🗑️

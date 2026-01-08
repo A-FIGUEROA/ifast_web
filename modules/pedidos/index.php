@@ -615,7 +615,7 @@ $clientes_lista = $stmt->fetchAll();
                                 <a href="index.php" class="btn btn-back">Limpiar</a>
                                 <?php endif; ?>
                             </form>
-                            <?php if ($tipo_usuario !== 'SUPERVISOR'): ?>
+                            <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
                             <a href="crear.php" class="btn btn-primary">+ Nuevo Pedido</a>
                             <?php endif; ?>
                         </div>
@@ -682,7 +682,7 @@ $clientes_lista = $stmt->fetchAll();
                                            class="btn btn-small btn-download" title="Descargar">
                                            ⬇️
                                         </a>
-                                        <?php if ($tipo_usuario !== 'SUPERVISOR'): ?>
+                                        <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
                                         <a href="editar.php?id=<?php echo $pedido['id']; ?>"
                                            class="btn btn-small btn-edit" title="Editar">
                                            ✏️

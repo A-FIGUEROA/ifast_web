@@ -630,7 +630,7 @@ $guias = $stmt->fetchAll();
                     <h2 class="card-title">
                         <i class='bx bx-package'></i> Gestión de Guías
                     </h2>
-                    <?php if ($tipo_usuario === 'ADMIN'): ?>
+                    <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR'])): ?>
                     <div class="btn-group">
                         <a href="crear.php" class="btn btn-primary">
                             <i class='bx bx-plus'></i> Agregar Manual
@@ -745,7 +745,7 @@ $guias = $stmt->fetchAll();
                                         <a href="visualizar.php?id=<?php echo $guia['id']; ?>" class="btn btn-info btn-sm" title="Ver">
                                             <i class='bx bx-show'></i>
                                         </a>
-                                        <?php if ($tipo_usuario === 'ADMIN'): ?>
+                                        <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR'])): ?>
                                         <a href="editar.php?id=<?php echo $guia['id']; ?>" class="btn btn-warning btn-sm" title="Editar">
                                             <i class='bx bx-edit'></i>
                                         </a>
