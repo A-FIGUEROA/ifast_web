@@ -21,14 +21,14 @@ $registros_por_pagina = 10;
 $buscar = isset($_GET['buscar']) ? limpiarDatos($_GET['buscar']) : '';
 
 // Query base con JOIN a usuarios para obtener el nombre del que registró
-$query_count = "SELECT COUNT(*) as total FROM clientes";
+$query_count = "SELECT COUNT(*) as total FROM clientes c";
 $query_select = "SELECT c.*, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario
                  FROM clientes c
                  LEFT JOIN usuarios u ON c.creado_por = u.id";
 
 // Si hay búsqueda
 if (!empty($buscar)) {
-    $where = " WHERE nombre_razon_social LIKE :buscar1 OR documento LIKE :buscar2 OR email LIKE :buscar3";
+    $where = " WHERE c.nombre_razon_social LIKE :buscar1 OR c.documento LIKE :buscar2 OR c.email LIKE :buscar3";
     $query_count .= $where;
     $query_select .= $where;
 }
