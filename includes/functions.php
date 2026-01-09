@@ -203,13 +203,13 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             $stmt = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE DATE(creado_en) = CURDATE()");
             $stats['clientes_hoy'] = $stmt->fetch()['total'];
 
-            // Clientes esta semana
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE YEARWEEK(creado_en, 1) = YEARWEEK(NOW(), 1)");
-            $stats['clientes_semana'] = $stmt->fetch()['total'];
+            // Clientes últimos 7 días
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+            $stats['clientes_ultimos_7_dias'] = $stmt->fetch()['total'];
 
-            // Clientes este mes
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE YEAR(creado_en) = YEAR(NOW()) AND MONTH(creado_en) = MONTH(NOW())");
-            $stats['clientes_mes'] = $stmt->fetch()['total'];
+            // Clientes últimos 30 días
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+            $stats['clientes_ultimos_30_dias'] = $stmt->fetch()['total'];
 
             // Clientes ayer (para comparación)
             $stmt = $conn->query("SELECT COUNT(*) as total FROM clientes WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
@@ -220,13 +220,13 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             $stmt = $conn->query("SELECT COUNT(*) as total FROM recibos_pedidos WHERE DATE(subido_en) = CURDATE()");
             $stats['pedidos_hoy'] = $stmt->fetch()['total'];
 
-            // Pedidos esta semana
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM recibos_pedidos WHERE YEARWEEK(subido_en, 1) = YEARWEEK(NOW(), 1)");
-            $stats['pedidos_semana'] = $stmt->fetch()['total'];
+            // Pedidos últimos 7 días
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM recibos_pedidos WHERE subido_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+            $stats['pedidos_ultimos_7_dias'] = $stmt->fetch()['total'];
 
-            // Pedidos este mes
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM recibos_pedidos WHERE YEAR(subido_en) = YEAR(NOW()) AND MONTH(subido_en) = MONTH(NOW())");
-            $stats['pedidos_mes'] = $stmt->fetch()['total'];
+            // Pedidos últimos 30 días
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM recibos_pedidos WHERE subido_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+            $stats['pedidos_ultimos_30_dias'] = $stmt->fetch()['total'];
 
             // Pedidos ayer
             $stmt = $conn->query("SELECT COUNT(*) as total FROM recibos_pedidos WHERE DATE(subido_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
@@ -237,13 +237,13 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE DATE(creado_en) = CURDATE()");
             $stats['embarques_hoy'] = $stmt->fetch()['total'];
 
-            // Embarques esta semana
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE YEARWEEK(creado_en, 1) = YEARWEEK(NOW(), 1)");
-            $stats['embarques_semana'] = $stmt->fetch()['total'];
+            // Embarques últimos 7 días
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+            $stats['embarques_ultimos_7_dias'] = $stmt->fetch()['total'];
 
-            // Embarques este mes
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE YEAR(creado_en) = YEAR(NOW()) AND MONTH(creado_en) = MONTH(NOW())");
-            $stats['embarques_mes'] = $stmt->fetch()['total'];
+            // Embarques últimos 30 días
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+            $stats['embarques_ultimos_30_dias'] = $stmt->fetch()['total'];
 
             // Embarques ayer
             $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
@@ -281,67 +281,67 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             }
             $stats['total_facturacion_hoy'] = $stats['monto_facturas_hoy'] + $stats['monto_boletas_hoy'] + $stats['monto_recibos_hoy'];
 
-            // Facturación esta semana por tipo
+            // Facturación últimos 7 días por tipo
             $stmt = $conn->query("
                 SELECT
                     tipo_documento,
                     COUNT(*) as cantidad,
                     COALESCE(SUM(total), 0) as monto_total
                 FROM documentos_facturacion
-                WHERE YEARWEEK(creado_en, 1) = YEARWEEK(NOW(), 1)
+                WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                 GROUP BY tipo_documento
             ");
-            $facturas_semana = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $stats['facturas_semana'] = 0;
-            $stats['boletas_semana'] = 0;
-            $stats['recibos_semana'] = 0;
-            $stats['monto_facturas_semana'] = 0;
-            $stats['monto_boletas_semana'] = 0;
-            $stats['monto_recibos_semana'] = 0;
-            foreach ($facturas_semana as $doc) {
+            $facturas_ultimos_7_dias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stats['facturas_ultimos_7_dias'] = 0;
+            $stats['boletas_ultimos_7_dias'] = 0;
+            $stats['recibos_ultimos_7_dias'] = 0;
+            $stats['monto_facturas_ultimos_7_dias'] = 0;
+            $stats['monto_boletas_ultimos_7_dias'] = 0;
+            $stats['monto_recibos_ultimos_7_dias'] = 0;
+            foreach ($facturas_ultimos_7_dias as $doc) {
                 if ($doc['tipo_documento'] == 'FACTURA') {
-                    $stats['facturas_semana'] = $doc['cantidad'];
-                    $stats['monto_facturas_semana'] = $doc['monto_total'];
+                    $stats['facturas_ultimos_7_dias'] = $doc['cantidad'];
+                    $stats['monto_facturas_ultimos_7_dias'] = $doc['monto_total'];
                 } elseif ($doc['tipo_documento'] == 'BOLETA') {
-                    $stats['boletas_semana'] = $doc['cantidad'];
-                    $stats['monto_boletas_semana'] = $doc['monto_total'];
+                    $stats['boletas_ultimos_7_dias'] = $doc['cantidad'];
+                    $stats['monto_boletas_ultimos_7_dias'] = $doc['monto_total'];
                 } elseif ($doc['tipo_documento'] == 'RECIBO') {
-                    $stats['recibos_semana'] = $doc['cantidad'];
-                    $stats['monto_recibos_semana'] = $doc['monto_total'];
+                    $stats['recibos_ultimos_7_dias'] = $doc['cantidad'];
+                    $stats['monto_recibos_ultimos_7_dias'] = $doc['monto_total'];
                 }
             }
-            $stats['total_facturacion_semana'] = $stats['monto_facturas_semana'] + $stats['monto_boletas_semana'] + $stats['monto_recibos_semana'];
+            $stats['total_facturacion_ultimos_7_dias'] = $stats['monto_facturas_ultimos_7_dias'] + $stats['monto_boletas_ultimos_7_dias'] + $stats['monto_recibos_ultimos_7_dias'];
 
-            // Facturación este mes por tipo
+            // Facturación últimos 30 días por tipo
             $stmt = $conn->query("
                 SELECT
                     tipo_documento,
                     COUNT(*) as cantidad,
                     COALESCE(SUM(total), 0) as monto_total
                 FROM documentos_facturacion
-                WHERE YEAR(creado_en) = YEAR(NOW()) AND MONTH(creado_en) = MONTH(NOW())
+                WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                 GROUP BY tipo_documento
             ");
-            $facturas_mes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $stats['facturas_mes'] = 0;
-            $stats['boletas_mes'] = 0;
-            $stats['recibos_mes'] = 0;
-            $stats['monto_facturas_mes'] = 0;
-            $stats['monto_boletas_mes'] = 0;
-            $stats['monto_recibos_mes'] = 0;
-            foreach ($facturas_mes as $doc) {
+            $facturas_ultimos_30_dias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stats['facturas_ultimos_30_dias'] = 0;
+            $stats['boletas_ultimos_30_dias'] = 0;
+            $stats['recibos_ultimos_30_dias'] = 0;
+            $stats['monto_facturas_ultimos_30_dias'] = 0;
+            $stats['monto_boletas_ultimos_30_dias'] = 0;
+            $stats['monto_recibos_ultimos_30_dias'] = 0;
+            foreach ($facturas_ultimos_30_dias as $doc) {
                 if ($doc['tipo_documento'] == 'FACTURA') {
-                    $stats['facturas_mes'] = $doc['cantidad'];
-                    $stats['monto_facturas_mes'] = $doc['monto_total'];
+                    $stats['facturas_ultimos_30_dias'] = $doc['cantidad'];
+                    $stats['monto_facturas_ultimos_30_dias'] = $doc['monto_total'];
                 } elseif ($doc['tipo_documento'] == 'BOLETA') {
-                    $stats['boletas_mes'] = $doc['cantidad'];
-                    $stats['monto_boletas_mes'] = $doc['monto_total'];
+                    $stats['boletas_ultimos_30_dias'] = $doc['cantidad'];
+                    $stats['monto_boletas_ultimos_30_dias'] = $doc['monto_total'];
                 } elseif ($doc['tipo_documento'] == 'RECIBO') {
-                    $stats['recibos_mes'] = $doc['cantidad'];
-                    $stats['monto_recibos_mes'] = $doc['monto_total'];
+                    $stats['recibos_ultimos_30_dias'] = $doc['cantidad'];
+                    $stats['monto_recibos_ultimos_30_dias'] = $doc['monto_total'];
                 }
             }
-            $stats['total_facturacion_mes'] = $stats['monto_facturas_mes'] + $stats['monto_boletas_mes'] + $stats['monto_recibos_mes'];
+            $stats['total_facturacion_ultimos_30_dias'] = $stats['monto_facturas_ultimos_30_dias'] + $stats['monto_boletas_ultimos_30_dias'] + $stats['monto_recibos_ultimos_30_dias'];
 
             // Facturación ayer (para comparación)
             $stmt = $conn->query("SELECT COALESCE(SUM(total), 0) as total FROM documentos_facturacion WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");

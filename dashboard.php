@@ -375,7 +375,7 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                     <!-- Gráfico: Distribución de Documentos -->
                     <div class="card">
                         <div class="card-header">
-                            <h3>📄 Documentos Emitidos (Mes)</h3>
+                            <h3>📄 Documentos Emitidos (Últimos 30 Días)</h3>
                         </div>
                         <div style="padding: 20px;">
                             <canvas id="chartDistribucionDocumentos" height="250"></canvas>
@@ -502,14 +502,14 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
             new Chart(ctxActividad, {
                 type: 'bar',
                 data: {
-                    labels: ['Hoy', 'Esta Semana', 'Este Mes'],
+                    labels: ['Hoy', 'Últimos 7 Días', 'Últimos 30 Días'],
                     datasets: [
                         {
                             label: 'Clientes',
                             data: [
                                 <?php echo $stats['clientes_hoy']; ?>,
-                                <?php echo $stats['clientes_semana']; ?>,
-                                <?php echo $stats['clientes_mes']; ?>
+                                <?php echo $stats['clientes_ultimos_7_dias']; ?>,
+                                <?php echo $stats['clientes_ultimos_30_dias']; ?>
                             ],
                             backgroundColor: 'rgba(102, 126, 234, 0.8)',
                             borderColor: 'rgba(102, 126, 234, 1)',
@@ -519,8 +519,8 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                             label: 'Pedidos',
                             data: [
                                 <?php echo $stats['pedidos_hoy']; ?>,
-                                <?php echo $stats['pedidos_semana']; ?>,
-                                <?php echo $stats['pedidos_mes']; ?>
+                                <?php echo $stats['pedidos_ultimos_7_dias']; ?>,
+                                <?php echo $stats['pedidos_ultimos_30_dias']; ?>
                             ],
                             backgroundColor: 'rgba(17, 153, 142, 0.8)',
                             borderColor: 'rgba(17, 153, 142, 1)',
@@ -530,8 +530,8 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                             label: 'Embarques',
                             data: [
                                 <?php echo $stats['embarques_hoy']; ?>,
-                                <?php echo $stats['embarques_semana']; ?>,
-                                <?php echo $stats['embarques_mes']; ?>
+                                <?php echo $stats['embarques_ultimos_7_dias']; ?>,
+                                <?php echo $stats['embarques_ultimos_30_dias']; ?>
                             ],
                             backgroundColor: 'rgba(245, 87, 108, 0.8)',
                             borderColor: 'rgba(245, 87, 108, 1)',
@@ -569,9 +569,9 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
         // ========================================
         const ctxDocumentos = document.getElementById('chartDistribucionDocumentos');
         if (ctxDocumentos) {
-            const totalFacturas = <?php echo $stats['facturas_mes']; ?>;
-            const totalBoletas = <?php echo $stats['boletas_mes']; ?>;
-            const totalRecibos = <?php echo $stats['recibos_mes']; ?>;
+            const totalFacturas = <?php echo $stats['facturas_ultimos_30_dias']; ?>;
+            const totalBoletas = <?php echo $stats['boletas_ultimos_30_dias']; ?>;
+            const totalRecibos = <?php echo $stats['recibos_ultimos_30_dias']; ?>;
             const totalDocumentos = totalFacturas + totalBoletas + totalRecibos;
 
             new Chart(ctxDocumentos, {
@@ -624,14 +624,14 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
             new Chart(ctxFacturacion, {
                 type: 'bar',
                 data: {
-                    labels: ['Hoy', 'Esta Semana', 'Este Mes'],
+                    labels: ['Hoy', 'Últimos 7 Días', 'Últimos 30 Días'],
                     datasets: [
                         {
                             label: 'Facturas',
                             data: [
                                 <?php echo $stats['monto_facturas_hoy']; ?>,
-                                <?php echo $stats['monto_facturas_semana']; ?>,
-                                <?php echo $stats['monto_facturas_mes']; ?>
+                                <?php echo $stats['monto_facturas_ultimos_7_dias']; ?>,
+                                <?php echo $stats['monto_facturas_ultimos_30_dias']; ?>
                             ],
                             backgroundColor: 'rgba(102, 126, 234, 0.8)',
                             borderColor: 'rgba(102, 126, 234, 1)',
@@ -641,8 +641,8 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                             label: 'Boletas',
                             data: [
                                 <?php echo $stats['monto_boletas_hoy']; ?>,
-                                <?php echo $stats['monto_boletas_semana']; ?>,
-                                <?php echo $stats['monto_boletas_mes']; ?>
+                                <?php echo $stats['monto_boletas_ultimos_7_dias']; ?>,
+                                <?php echo $stats['monto_boletas_ultimos_30_dias']; ?>
                             ],
                             backgroundColor: 'rgba(56, 239, 125, 0.8)',
                             borderColor: 'rgba(56, 239, 125, 1)',
@@ -652,8 +652,8 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                             label: 'Recibos',
                             data: [
                                 <?php echo $stats['monto_recibos_hoy']; ?>,
-                                <?php echo $stats['monto_recibos_semana']; ?>,
-                                <?php echo $stats['monto_recibos_mes']; ?>
+                                <?php echo $stats['monto_recibos_ultimos_7_dias']; ?>,
+                                <?php echo $stats['monto_recibos_ultimos_30_dias']; ?>
                             ],
                             backgroundColor: 'rgba(79, 172, 254, 0.8)',
                             borderColor: 'rgba(79, 172, 254, 1)',
