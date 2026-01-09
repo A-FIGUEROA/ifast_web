@@ -13,12 +13,12 @@ requiereLogin();
 $database = new Database();
 $conn = $database->getConnection();
 
-// Obtener estad铆sticas
-$stats = obtenerEstadisticas($conn);
-
 // Obtener tipo de usuario
 $tipo_usuario = obtenerTipoUsuario();
 $nombre_usuario = obtenerNombreUsuario();
+
+// Obtener estad铆sticas (pasando tipo de usuario para estad铆sticas avanzadas)
+$stats = obtenerEstadisticas($conn, $tipo_usuario);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -206,6 +206,15 @@ $nombre_usuario = obtenerNombreUsuario();
             opacity: 0.5;
         }
 
+        /* ESTADÍSTICAS COLORES */
+        .text-success {
+            color: #28a745;
+        }
+
+        .text-danger {
+            color: #dc3545;
+        }
+
         /* RESPONSIVE */
         @media (max-width: 768px) {
 
@@ -253,6 +262,139 @@ $nombre_usuario = obtenerNombreUsuario();
                 </div>
 
                 <!-- STATS -->
+                <?php if ($tipo_usuario === 'ADMIN'): ?>
+                <!-- DASHBOARD ADMINISTRADOR CON ESTADÍSTICAS AVANZADAS -->
+
+                <!-- Tarjetas de Hoy con Comparación -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <box-icon type='solid' name='user-check'></box-icon>
+                        </div>
+                        <div class="stat-details">
+                            <h3><?php echo $stats['clientes_hoy']; ?></h3>
+                            <p>Clientes Hoy</p>
+                            <?php
+                            $variacion_clientes = 0;
+                            if ($stats['clientes_ayer'] > 0) {
+                                $variacion_clientes = (($stats['clientes_hoy'] - $stats['clientes_ayer']) / $stats['clientes_ayer']) * 100;
+                            } elseif ($stats['clientes_hoy'] > 0) {
+                                $variacion_clientes = 100;
+                            }
+                            $clase_variacion = $variacion_clientes >= 0 ? 'text-success' : 'text-danger';
+                            $icono_variacion = $variacion_clientes >= 0 ? '↗️' : '↘️';
+                            ?>
+                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
+                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_clientes), 1); ?>% vs ayer
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <box-icon name='package' type='solid'></box-icon>
+                        </div>
+                        <div class="stat-details">
+                            <h3><?php echo $stats['pedidos_hoy']; ?></h3>
+                            <p>Pedidos Hoy</p>
+                            <?php
+                            $variacion_pedidos = 0;
+                            if ($stats['pedidos_ayer'] > 0) {
+                                $variacion_pedidos = (($stats['pedidos_hoy'] - $stats['pedidos_ayer']) / $stats['pedidos_ayer']) * 100;
+                            } elseif ($stats['pedidos_hoy'] > 0) {
+                                $variacion_pedidos = 100;
+                            }
+                            $clase_variacion = $variacion_pedidos >= 0 ? 'text-success' : 'text-danger';
+                            $icono_variacion = $variacion_pedidos >= 0 ? '↗️' : '↘️';
+                            ?>
+                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
+                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_pedidos), 1); ?>% vs ayer
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <box-icon name='ship' type='solid'></box-icon>
+                        </div>
+                        <div class="stat-details">
+                            <h3><?php echo $stats['embarques_hoy']; ?></h3>
+                            <p>Embarques Hoy</p>
+                            <?php
+                            $variacion_embarques = 0;
+                            if ($stats['embarques_ayer'] > 0) {
+                                $variacion_embarques = (($stats['embarques_hoy'] - $stats['embarques_ayer']) / $stats['embarques_ayer']) * 100;
+                            } elseif ($stats['embarques_hoy'] > 0) {
+                                $variacion_embarques = 100;
+                            }
+                            $clase_variacion = $variacion_embarques >= 0 ? 'text-success' : 'text-danger';
+                            $icono_variacion = $variacion_embarques >= 0 ? '↗️' : '↘️';
+                            ?>
+                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
+                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_embarques), 1); ?>% vs ayer
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <box-icon name='dollar-circle' type='solid'></box-icon>
+                        </div>
+                        <div class="stat-details">
+                            <h3>$<?php echo number_format($stats['total_facturacion_hoy'], 2); ?></h3>
+                            <p>Facturado Hoy</p>
+                            <?php
+                            $variacion_facturacion = 0;
+                            if ($stats['total_facturacion_ayer'] > 0) {
+                                $variacion_facturacion = (($stats['total_facturacion_hoy'] - $stats['total_facturacion_ayer']) / $stats['total_facturacion_ayer']) * 100;
+                            } elseif ($stats['total_facturacion_hoy'] > 0) {
+                                $variacion_facturacion = 100;
+                            }
+                            $clase_variacion = $variacion_facturacion >= 0 ? 'text-success' : 'text-danger';
+                            $icono_variacion = $variacion_facturacion >= 0 ? '↗️' : '↘️';
+                            ?>
+                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
+                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_facturacion), 1); ?>% vs ayer
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos de Estadísticas -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <!-- Gráfico: Clientes, Pedidos y Embarques por Periodo -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📊 Actividad por Periodo</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartActividadPeriodo" height="250"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico: Distribución de Documentos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📄 Documentos Emitidos (Mes)</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <canvas id="chartDistribucionDocumentos" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico: Facturación por Periodo -->
+                <div class="card" style="margin-bottom: 30px;">
+                    <div class="card-header">
+                        <h3>💰 Facturación por Periodo</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <canvas id="chartFacturacionPeriodo" height="120"></canvas>
+                    </div>
+                </div>
+
+                <?php else: ?>
+                <!-- DASHBOARD PARA OTROS USUARIOS -->
                 <div class="stats-grid">
                     <?php if ($tipo_usuario === 'ADMIN'): ?>
                     <div class="stat-card">
@@ -296,6 +438,7 @@ $nombre_usuario = obtenerNombreUsuario();
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- RECENT ORDERS -->
                 <div class="card">
@@ -344,5 +487,221 @@ $nombre_usuario = obtenerNombreUsuario();
             </div>
         </main>
     </div>
+
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <?php if ($tipo_usuario === 'ADMIN'): ?>
+    <!-- JavaScript para Gráficos del Dashboard ADMIN -->
+    <script>
+        // ========================================
+        // GRÁFICO 1: ACTIVIDAD POR PERIODO (Barras Agrupadas)
+        // ========================================
+        const ctxActividad = document.getElementById('chartActividadPeriodo');
+        if (ctxActividad) {
+            new Chart(ctxActividad, {
+                type: 'bar',
+                data: {
+                    labels: ['Hoy', 'Esta Semana', 'Este Mes'],
+                    datasets: [
+                        {
+                            label: 'Clientes',
+                            data: [
+                                <?php echo $stats['clientes_hoy']; ?>,
+                                <?php echo $stats['clientes_semana']; ?>,
+                                <?php echo $stats['clientes_mes']; ?>
+                            ],
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Pedidos',
+                            data: [
+                                <?php echo $stats['pedidos_hoy']; ?>,
+                                <?php echo $stats['pedidos_semana']; ?>,
+                                <?php echo $stats['pedidos_mes']; ?>
+                            ],
+                            backgroundColor: 'rgba(17, 153, 142, 0.8)',
+                            borderColor: 'rgba(17, 153, 142, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Embarques',
+                            data: [
+                                <?php echo $stats['embarques_hoy']; ?>,
+                                <?php echo $stats['embarques_semana']; ?>,
+                                <?php echo $stats['embarques_mes']; ?>
+                            ],
+                            backgroundColor: 'rgba(245, 87, 108, 0.8)',
+                            borderColor: 'rgba(245, 87, 108, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========================================
+        // GRÁFICO 2: DISTRIBUCIÓN DE DOCUMENTOS (Dona)
+        // ========================================
+        const ctxDocumentos = document.getElementById('chartDistribucionDocumentos');
+        if (ctxDocumentos) {
+            const totalFacturas = <?php echo $stats['facturas_mes']; ?>;
+            const totalBoletas = <?php echo $stats['boletas_mes']; ?>;
+            const totalRecibos = <?php echo $stats['recibos_mes']; ?>;
+            const totalDocumentos = totalFacturas + totalBoletas + totalRecibos;
+
+            new Chart(ctxDocumentos, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Facturas', 'Boletas', 'Recibos'],
+                    datasets: [{
+                        data: [totalFacturas, totalBoletas, totalRecibos],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(56, 239, 125, 0.8)',
+                            'rgba(79, 172, 254, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(56, 239, 125, 1)',
+                            'rgba(79, 172, 254, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const percentage = totalDocumentos > 0 ? ((value / totalDocumentos) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========================================
+        // GRÁFICO 3: FACTURACIÓN POR PERIODO (Barras Apiladas)
+        // ========================================
+        const ctxFacturacion = document.getElementById('chartFacturacionPeriodo');
+        if (ctxFacturacion) {
+            new Chart(ctxFacturacion, {
+                type: 'bar',
+                data: {
+                    labels: ['Hoy', 'Esta Semana', 'Este Mes'],
+                    datasets: [
+                        {
+                            label: 'Facturas',
+                            data: [
+                                <?php echo $stats['monto_facturas_hoy']; ?>,
+                                <?php echo $stats['monto_facturas_semana']; ?>,
+                                <?php echo $stats['monto_facturas_mes']; ?>
+                            ],
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Boletas',
+                            data: [
+                                <?php echo $stats['monto_boletas_hoy']; ?>,
+                                <?php echo $stats['monto_boletas_semana']; ?>,
+                                <?php echo $stats['monto_boletas_mes']; ?>
+                            ],
+                            backgroundColor: 'rgba(56, 239, 125, 0.8)',
+                            borderColor: 'rgba(56, 239, 125, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Recibos',
+                            data: [
+                                <?php echo $stats['monto_recibos_hoy']; ?>,
+                                <?php echo $stats['monto_recibos_semana']; ?>,
+                                <?php echo $stats['monto_recibos_mes']; ?>
+                            ],
+                            backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                            borderColor: 'rgba(79, 172, 254, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += '$' + context.parsed.y.toFixed(2);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+    <?php endif; ?>
 </body>
 </html>
