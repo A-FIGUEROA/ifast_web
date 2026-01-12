@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
                 case UPLOAD_ERR_INI_SIZE:
                 case UPLOAD_ERR_FORM_SIZE:
-                    $errores[] = "El archivo excede el tamaño máximo permitido (5MB)";
+                    $errores[] = "El archivo excede el tamaño máximo permitido (50MB)";
                     break;
                 case UPLOAD_ERR_PARTIAL:
                     $errores[] = "El archivo solo se subió parcialmente. Intenta nuevamente";
@@ -755,7 +755,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             📎 Seleccionar Nuevo Archivo
                         </label>
                     </div>
-                    <span class="file-name" id="fileName">PDF, Excel o Word (máx. 5MB)</span>
+                    <span class="file-name" id="fileName">PDF, Excel o Word (máx. 50MB)</span>
                 </div>
 
                 <div class="section-title">💰 Información de Pago</div>
@@ -867,13 +867,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 archivoGroup.style.display = 'none';
                 archivoInput.required = false;
                 archivoInput.value = '';
-                document.getElementById('fileName').textContent = 'PDF, Excel o Word (máx. 5MB)';
+                document.getElementById('fileName').textContent = 'PDF, Excel o Word (máx. 50MB)';
             }
         }
 
         // Mostrar nombre del archivo seleccionado
         document.getElementById('nuevo_archivo').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name || 'PDF, Excel o Word (máx. 5MB)';
+            const fileName = e.target.files[0]?.name || 'PDF, Excel o Word (máx. 50MB)';
             document.getElementById('fileName').textContent = '📄 ' + fileName;
         });
 
@@ -909,9 +909,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Validar tamaño del archivo
-            if (archivo && archivo.size > 5242880) { // 5MB
+            if (archivo && archivo.size > 52428800) { // 50MB
                 e.preventDefault();
-                alert('⚠️ El archivo es demasiado grande.\n\nTamaño máximo permitido: 5MB\nTamaño del archivo: ' + (archivo.size / 1024 / 1024).toFixed(2) + 'MB');
+                alert('⚠️ El archivo es demasiado grande.\n\nTamaño máximo permitido: 50MB\nTamaño del archivo: ' + (archivo.size / 1024 / 1024).toFixed(2) + 'MB');
                 return false;
             }
 

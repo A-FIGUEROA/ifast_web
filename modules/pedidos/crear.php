@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             case UPLOAD_ERR_INI_SIZE:
             case UPLOAD_ERR_FORM_SIZE:
-                $errores[] = "El archivo excede el tamaño máximo permitido (5MB)";
+                $errores[] = "El archivo excede el tamaño máximo permitido (50MB)";
                 break;
             case UPLOAD_ERR_PARTIAL:
                 $errores[] = "El archivo solo se subió parcialmente. Intenta nuevamente";
@@ -475,7 +475,7 @@ if ($esAjax && !empty($errores)) {
                     <li>Puedes agregar <strong>múltiples trackings</strong> para un mismo recibo</li>
                     <li>Solo puedes crear pedidos para clientes ya registrados</li>
                     <li>Los códigos de tracking deben ser únicos</li>
-                    <li>Formatos de archivo permitidos: PDF, Excel, Word (máx. 5MB)</li>
+                    <li>Formatos de archivo permitidos: PDF, Excel, Word (máx. 50MB)</li>
                 </ul>
             </div>
 
@@ -539,7 +539,7 @@ if ($esAjax && !empty($errores)) {
                             📎 Seleccionar Archivo
                         </label>
                     </div>
-                    <span class="file-name" id="fileName">PDF, Excel o Word (máx. 5MB)</span>
+                    <span class="file-name" id="fileName">PDF, Excel o Word (máx. 50MB)</span>
                 </div>
 
                 <div class="section-title">💰 Información de Pago</div>
@@ -642,7 +642,7 @@ if ($esAjax && !empty($errores)) {
 
         // Mostrar nombre del archivo seleccionado
         document.getElementById('archivo').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name || 'PDF, Excel o Word (máx. 5MB)';
+            const fileName = e.target.files[0]?.name || 'PDF, Excel o Word (máx. 50MB)';
             document.getElementById('fileName').textContent = '📄 ' + fileName;
         });
 
@@ -681,9 +681,9 @@ if ($esAjax && !empty($errores)) {
             }
 
             // Validar tamaño del archivo
-            if (archivo.size > 5242880) { // 5MB
+            if (archivo.size > 52428800) { // 50MB
                 e.preventDefault();
-                alert('⚠️ El archivo es demasiado grande.\n\nTamaño máximo permitido: 5MB\nTamaño del archivo: ' + (archivo.size / 1024 / 1024).toFixed(2) + 'MB');
+                alert('⚠️ El archivo es demasiado grande.\n\nTamaño máximo permitido: 50MB\nTamaño del archivo: ' + (archivo.size / 1024 / 1024).toFixed(2) + 'MB');
                 return false;
             }
 

@@ -58,9 +58,9 @@ function subirArchivo($archivo, $carpeta_destino, $tipos_permitidos = ['pdf', 'x
         return $resultado;
     }
 
-    // Validar tamaño (máximo 5MB)
-    if ($archivo['size'] > 5242880) {
-        $resultado['mensaje'] = 'El archivo es demasiado grande. Máximo 5MB';
+    // Validar tamaño (máximo 50MB)
+    if ($archivo['size'] > 52428800) {
+        $resultado['mensaje'] = 'El archivo es demasiado grande. Máximo 50MB';
         return $resultado;
     }
 
