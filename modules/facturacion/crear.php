@@ -21,6 +21,16 @@ function obtenerSiguienteNumero($conn, $tipo) {
     $stmt->execute();
     $resultado = $stmt->fetch();
 
+    // Validar que exista el registro
+    if (!$resultado) {
+        throw new Exception("No existe configuración de numeración para el tipo de documento: $tipo. Por favor contacte al administrador.");
+    }
+
+    // Validar que el prefijo no esté vacío
+    if (empty($resultado['prefijo'])) {
+        throw new Exception("El prefijo para el tipo de documento '$tipo' está vacío. Por favor contacte al administrador.");
+    }
+
     $nuevo_numero = $resultado['ultimo_numero'] + 1;
     $numero_formateado = $resultado['prefijo'] . '-' . str_pad($nuevo_numero, 5, '0', STR_PAD_LEFT);
 
