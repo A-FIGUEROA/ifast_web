@@ -123,8 +123,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Si se quiere cambiar el archivo, validar que se haya subido uno nuevo
     if ($cambiar_archivo) {
-        if (!isset($_FILES['nuevo_archivo']) || $_FILES['nuevo_archivo']['error'] !== UPLOAD_ERR_OK) {
+        if (!isset($_FILES['nuevo_archivo'])) {
             $errores[] = "Debes subir un nuevo archivo si deseas reemplazarlo";
+        } else {
+            $error_archivo = $_FILES['nuevo_archivo']['error'];
+
+            // Validar errores específicos de upload
+            switch ($error_archivo) {
+                case UPLOAD_ERR_OK:
+                    // Archivo subido correctamente, continuar
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $errores[] = "Debes seleccionar un archivo si deseas reemplazarlo";
+                    break;
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $errores[] = "El archivo excede el tamaño máximo permitido (5MB)";
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $errores[] = "El archivo solo se subió parcialmente. Intenta nuevamente";
+                    break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $errores[] = "Error del servidor: Falta directorio temporal";
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $errores[] = "Error del servidor: No se pudo escribir el archivo";
+                    break;
+                default:
+                    $errores[] = "Error al subir el archivo. Por favor intenta nuevamente";
+                    break;
+            }
         }
     }
 
@@ -862,24 +890,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             const clienteId = document.getElementById('cliente_id').value;
             const cambiarArchivo = document.getElementById('cambiar_archivo_check').checked;
-            const archivo = document.getElementById('nuevo_archivo').files[0];
+            const archivoInput = document.getElementById('nuevo_archivo');
+            const archivo = archivoInput.files[0];
 
             if (!clienteId) {
                 e.preventDefault();
-                alert('Debes seleccionar un cliente');
+                alert('⚠️ Debes seleccionar un cliente');
                 return false;
             }
 
+            // Si el checkbox de cambiar archivo está marcado, debe haber un archivo
             if (cambiarArchivo && !archivo) {
                 e.preventDefault();
-                alert('Debes seleccionar un archivo nuevo');
+                alert('⚠️ Has marcado "Cambiar archivo" pero no has seleccionado ningún archivo.\n\nPor favor:\n- Selecciona un archivo nuevo, o\n- Desmarca la opción "¿Deseas cambiar el archivo?"');
+                // Hacer focus en el input de archivo
+                archivoInput.focus();
                 return false;
             }
 
+            // Validar tamaño del archivo
             if (archivo && archivo.size > 5242880) { // 5MB
                 e.preventDefault();
-                alert('El archivo es demasiado grande. Máximo 5MB');
+                alert('⚠️ El archivo es demasiado grande.\n\nTamaño máximo permitido: 5MB\nTamaño del archivo: ' + (archivo.size / 1024 / 1024).toFixed(2) + 'MB');
                 return false;
+            }
+
+            // Validar extensión del archivo
+            if (archivo) {
+                const nombreArchivo = archivo.name.toLowerCase();
+                const extensionesPermitidas = ['.pdf', '.xlsx', '.xls', '.doc', '.docx'];
+                const tieneExtensionValida = extensionesPermitidas.some(ext => nombreArchivo.endsWith(ext));
+
+                if (!tieneExtensionValida) {
+                    e.preventDefault();
+                    alert('⚠️ Formato de archivo no permitido.\n\nFormatos aceptados: PDF, Excel (.xlsx, .xls), Word (.doc, .docx)');
+                    return false;
+                }
             }
         });
     </script>
