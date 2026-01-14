@@ -39,20 +39,20 @@ $params = [];
 
 // Aplicar búsqueda
 if (!empty($buscar)) {
-    $query_count .= " AND (df.numero_documento LIKE :buscar
-                          OR c.nombre_razon_social LIKE :buscar
-                          OR c.documento LIKE :buscar)";
-    $query_select .= " AND (df.numero_documento LIKE :buscar
-                           OR c.nombre_razon_social LIKE :buscar
-                           OR c.documento LIKE :buscar)";
-    $params[':buscar'] = "%$buscar%";
+    $buscar_like = "%$buscar%";
+    $query_count .= " AND (df.numero_documento LIKE ? OR c.nombre_razon_social LIKE ? OR c.documento LIKE ?)";
+    $query_select .= " AND (df.numero_documento LIKE ? OR c.nombre_razon_social LIKE ? OR c.documento LIKE ?)";
+    // Agregar el mismo valor 3 veces (una por cada campo de búsqueda)
+    $params[] = $buscar_like;
+    $params[] = $buscar_like;
+    $params[] = $buscar_like;
 }
 
 // Aplicar filtro por tipo
 if (!empty($tipo_filtro)) {
-    $query_count .= " AND df.tipo_documento = :tipo";
-    $query_select .= " AND df.tipo_documento = :tipo";
-    $params[':tipo'] = $tipo_filtro;
+    $query_count .= " AND df.tipo_documento = ?";
+    $query_select .= " AND df.tipo_documento = ?";
+    $params[] = $tipo_filtro;
 }
 
 // Completar query de selección
@@ -248,9 +248,10 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
             <?php if (empty($params)): ?>
                 <div class="info">ℹ️ No hay parámetros de búsqueda o filtro</div>
             <?php else: ?>
-                <?php foreach ($params as $key => $value): ?>
+                <div class="info">ℹ️ Se usan parámetros posicionales (?). En PDO los índices empiezan en 1.</div>
+                <?php foreach ($params as $index => $value): ?>
                     <div class="param-item">
-                        <span class="key"><?php echo htmlspecialchars($key); ?></span> =
+                        <span class="key">Posición <?php echo ($index + 1); ?></span> =
                         <span class="value">"<?php echo htmlspecialchars($value); ?>"</span>
                     </div>
                 <?php endforeach; ?>
@@ -259,42 +260,32 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
 
         <h2>✅ Validación de Parámetros</h2>
         <?php
-        // Contar placeholders en cada query
-        preg_match_all('/:\w+/', $query_count, $placeholders_count);
-        preg_match_all('/:\w+/', $query_select, $placeholders_select);
+        // Contar placeholders posicionales (?) en cada query
+        $placeholders_count_num = substr_count($query_count, '?');
+        $placeholders_select_num = substr_count(str_replace([':offset', ':limit'], '', $query_select), '?');
 
-        $placeholders_count_unique = array_unique($placeholders_count[0]);
-        $placeholders_select_unique = array_unique($placeholders_select[0]);
+        // Contar parámetros nombrados en SELECT
+        preg_match_all('/:\w+/', $query_select, $named_params);
+        $named_params_unique = array_unique($named_params[0]);
 
-        $params_keys = array_keys($params);
+        $params_count = count($params);
 
         // Verificar query COUNT
-        $count_ok = true;
-        foreach ($placeholders_count_unique as $placeholder) {
-            if (!in_array($placeholder, $params_keys)) {
-                $count_ok = false;
-                echo "<div class='error'>❌ Query COUNT: Falta parámetro $placeholder</div>";
-            }
-        }
-        if ($count_ok) {
-            echo "<div class='success'>✅ Query COUNT: Todos los parámetros están presentes</div>";
+        if ($placeholders_count_num === $params_count) {
+            echo "<div class='success'>✅ Query COUNT: Número de placeholders ($placeholders_count_num) coincide con parámetros ($params_count)</div>";
+        } else {
+            echo "<div class='error'>❌ Query COUNT: Placeholders ($placeholders_count_num) ≠ Parámetros ($params_count)</div>";
         }
 
-        // Verificar query SELECT (sin :offset y :limit que se agregan después)
-        $select_placeholders_without_pagination = array_diff($placeholders_select_unique, [':offset', ':limit']);
-        $select_ok = true;
-        foreach ($select_placeholders_without_pagination as $placeholder) {
-            if (!in_array($placeholder, $params_keys)) {
-                $select_ok = false;
-                echo "<div class='error'>❌ Query SELECT: Falta parámetro $placeholder</div>";
-            }
-        }
-        if ($select_ok) {
-            echo "<div class='success'>✅ Query SELECT: Todos los parámetros de búsqueda/filtro están presentes</div>";
+        // Verificar query SELECT
+        if ($placeholders_select_num === $params_count) {
+            echo "<div class='success'>✅ Query SELECT: Número de placeholders posicionales ($placeholders_select_num) coincide con parámetros ($params_count)</div>";
+        } else {
+            echo "<div class='error'>❌ Query SELECT: Placeholders posicionales ($placeholders_select_num) ≠ Parámetros ($params_count)</div>";
         }
 
         // Verificar que :offset y :limit estén en la query SELECT
-        if (in_array(':offset', $placeholders_select[0]) && in_array(':limit', $placeholders_select[0])) {
+        if (in_array(':offset', $named_params_unique) && in_array(':limit', $named_params_unique)) {
             echo "<div class='success'>✅ Query SELECT: Tiene placeholders :offset y :limit para paginación</div>";
         } else {
             echo "<div class='error'>❌ Query SELECT: Faltan placeholders :offset y/o :limit</div>";
@@ -306,8 +297,9 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
         // Intentar ejecutar query COUNT
         try {
             $stmt = $conn->prepare($query_count);
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
+            // Bindear parámetros posicionales (índice empieza en 1 para PDO)
+            foreach ($params as $index => $value) {
+                $stmt->bindValue($index + 1, $value);
             }
             $stmt->execute();
             $total = $stmt->fetch()['total'];
@@ -319,8 +311,9 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
         // Intentar ejecutar query SELECT
         try {
             $stmt = $conn->prepare($query_select);
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
+            // Bindear parámetros posicionales (índice empieza en 1 para PDO)
+            foreach ($params as $index => $value) {
+                $stmt->bindValue($index + 1, $value);
             }
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->bindValue(':limit', $registros_por_pagina, PDO::PARAM_INT);

@@ -38,20 +38,20 @@ $params = [];
 
 // Aplicar búsqueda
 if (!empty($buscar)) {
-    $query_count .= " AND (df.numero_documento LIKE :buscar
-                          OR c.nombre_razon_social LIKE :buscar
-                          OR c.documento LIKE :buscar)";
-    $query_select .= " AND (df.numero_documento LIKE :buscar
-                           OR c.nombre_razon_social LIKE :buscar
-                           OR c.documento LIKE :buscar)";
-    $params[':buscar'] = "%$buscar%";
+    $buscar_like = "%$buscar%";
+    $query_count .= " AND (df.numero_documento LIKE ? OR c.nombre_razon_social LIKE ? OR c.documento LIKE ?)";
+    $query_select .= " AND (df.numero_documento LIKE ? OR c.nombre_razon_social LIKE ? OR c.documento LIKE ?)";
+    // Agregar el mismo valor 3 veces (una por cada campo de búsqueda)
+    $params[] = $buscar_like;
+    $params[] = $buscar_like;
+    $params[] = $buscar_like;
 }
 
 // Aplicar filtro por tipo
 if (!empty($tipo_filtro)) {
-    $query_count .= " AND df.tipo_documento = :tipo";
-    $query_select .= " AND df.tipo_documento = :tipo";
-    $params[':tipo'] = $tipo_filtro;
+    $query_count .= " AND df.tipo_documento = ?";
+    $query_select .= " AND df.tipo_documento = ?";
+    $params[] = $tipo_filtro;
 }
 
 // Completar query de selección ANTES del try
@@ -60,8 +60,9 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
 // Contar total de registros
 try {
     $stmt = $conn->prepare($query_count);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
+    // Bindear parámetros posicionales (índice empieza en 1 para PDO)
+    foreach ($params as $index => $value) {
+        $stmt->bindValue($index + 1, $value);
     }
     $stmt->execute();
     $total_registros = $stmt->fetch()['total'];
@@ -76,9 +77,11 @@ try {
 // Obtener registros
 try {
     $stmt = $conn->prepare($query_select);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
+    // Bindear parámetros posicionales (índice empieza en 1 para PDO)
+    foreach ($params as $index => $value) {
+        $stmt->bindValue($index + 1, $value);
     }
+    // Bindear parámetros de paginación (nombrados)
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->bindValue(':limit', $registros_por_pagina, PDO::PARAM_INT);
     $stmt->execute();
