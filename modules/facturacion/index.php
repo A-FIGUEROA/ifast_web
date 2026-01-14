@@ -55,7 +55,7 @@ if (!empty($tipo_filtro)) {
 }
 
 // Completar query de selección ANTES del try
-$query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
+$query_select .= " ORDER BY df.creado_en DESC LIMIT ?, ?";
 
 // Contar total de registros
 try {
@@ -77,19 +77,23 @@ try {
 // Obtener registros
 try {
     $stmt = $conn->prepare($query_select);
-    // Bindear parámetros posicionales (índice empieza en 1 para PDO)
-    foreach ($params as $index => $value) {
-        $stmt->bindValue($index + 1, $value);
+    // Bindear parámetros posicionales de búsqueda/filtro (índice empieza en 1 para PDO)
+    $posicion = 1;
+    foreach ($params as $value) {
+        $stmt->bindValue($posicion, $value);
+        $posicion++;
     }
-    // Bindear parámetros de paginación (nombrados)
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', $registros_por_pagina, PDO::PARAM_INT);
+    // Bindear parámetros de paginación (también posicionales)
+    $stmt->bindValue($posicion, $offset, PDO::PARAM_INT);
+    $stmt->bindValue($posicion + 1, $registros_por_pagina, PDO::PARAM_INT);
+
     $stmt->execute();
     $documentos = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Error en búsqueda de facturación (select): " . $e->getMessage());
     error_log("Query: " . $query_select);
     error_log("Params: " . print_r($params, true));
+    error_log("Offset: $offset, Limit: $registros_por_pagina");
     $error_busqueda = "Error al obtener registros: " . $e->getMessage();
     $documentos = [];
 }

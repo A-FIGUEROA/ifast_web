@@ -56,7 +56,7 @@ if (!empty($tipo_filtro)) {
 }
 
 // Completar query de selección
-$query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
+$query_select .= " ORDER BY df.creado_en DESC LIMIT ?, ?";
 
 ?>
 <!DOCTYPE html>
@@ -262,13 +262,10 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
         <?php
         // Contar placeholders posicionales (?) en cada query
         $placeholders_count_num = substr_count($query_count, '?');
-        $placeholders_select_num = substr_count(str_replace([':offset', ':limit'], '', $query_select), '?');
-
-        // Contar parámetros nombrados en SELECT
-        preg_match_all('/:\w+/', $query_select, $named_params);
-        $named_params_unique = array_unique($named_params[0]);
+        $placeholders_select_num = substr_count($query_select, '?');
 
         $params_count = count($params);
+        $params_count_with_pagination = $params_count + 2; // +2 por offset y limit
 
         // Verificar query COUNT
         if ($placeholders_count_num === $params_count) {
@@ -277,18 +274,19 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
             echo "<div class='error'>❌ Query COUNT: Placeholders ($placeholders_count_num) ≠ Parámetros ($params_count)</div>";
         }
 
-        // Verificar query SELECT
-        if ($placeholders_select_num === $params_count) {
-            echo "<div class='success'>✅ Query SELECT: Número de placeholders posicionales ($placeholders_select_num) coincide con parámetros ($params_count)</div>";
+        // Verificar query SELECT (incluye offset y limit)
+        if ($placeholders_select_num === $params_count_with_pagination) {
+            echo "<div class='success'>✅ Query SELECT: Número de placeholders posicionales ($placeholders_select_num) coincide con parámetros + paginación ($params_count_with_pagination = $params_count búsqueda/filtro + 2 paginación)</div>";
         } else {
-            echo "<div class='error'>❌ Query SELECT: Placeholders posicionales ($placeholders_select_num) ≠ Parámetros ($params_count)</div>";
+            echo "<div class='error'>❌ Query SELECT: Placeholders posicionales ($placeholders_select_num) ≠ Parámetros totales ($params_count_with_pagination)</div>";
         }
 
-        // Verificar que :offset y :limit estén en la query SELECT
-        if (in_array(':offset', $named_params_unique) && in_array(':limit', $named_params_unique)) {
-            echo "<div class='success'>✅ Query SELECT: Tiene placeholders :offset y :limit para paginación</div>";
+        // Verificar que NO haya parámetros nombrados (ya que usamos solo posicionales)
+        preg_match_all('/:\w+/', $query_select, $named_params);
+        if (empty($named_params[0])) {
+            echo "<div class='success'>✅ Query SELECT: Usa SOLO parámetros posicionales (sin parámetros nombrados)</div>";
         } else {
-            echo "<div class='error'>❌ Query SELECT: Faltan placeholders :offset y/o :limit</div>";
+            echo "<div class='error'>❌ Query SELECT: MEZCLA parámetros nombrados y posicionales: " . implode(', ', $named_params[0]) . "</div>";
         }
         ?>
 
@@ -311,12 +309,16 @@ $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
         // Intentar ejecutar query SELECT
         try {
             $stmt = $conn->prepare($query_select);
-            // Bindear parámetros posicionales (índice empieza en 1 para PDO)
-            foreach ($params as $index => $value) {
-                $stmt->bindValue($index + 1, $value);
+            // Bindear parámetros posicionales de búsqueda/filtro (índice empieza en 1 para PDO)
+            $posicion = 1;
+            foreach ($params as $value) {
+                $stmt->bindValue($posicion, $value);
+                $posicion++;
             }
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->bindValue(':limit', $registros_por_pagina, PDO::PARAM_INT);
+            // Bindear parámetros de paginación (también posicionales)
+            $stmt->bindValue($posicion, $offset, PDO::PARAM_INT);
+            $stmt->bindValue($posicion + 1, $registros_por_pagina, PDO::PARAM_INT);
+
             $stmt->execute();
             $results = $stmt->fetchAll();
             echo "<div class='success'>✅ Query SELECT ejecutada exitosamente: " . count($results) . " registros obtenidos</div>";
