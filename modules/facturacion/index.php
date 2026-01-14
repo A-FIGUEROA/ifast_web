@@ -8,6 +8,9 @@ requiereLogin();
 $database = new Database();
 $conn = $database->getConnection();
 
+// Variable para almacenar errores de búsqueda
+$error_busqueda = null;
+
 // Paginación
 $registros_por_pagina = 15;
 $pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
@@ -52,24 +55,37 @@ if (!empty($tipo_filtro)) {
 }
 
 // Contar total de registros
-$stmt = $conn->prepare($query_count);
-foreach ($params as $key => $value) {
-    $stmt->bindValue($key, $value);
+try {
+    $stmt = $conn->prepare($query_count);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $total_registros = $stmt->fetch()['total'];
+    $total_paginas = ceil($total_registros / $registros_por_pagina);
+} catch (PDOException $e) {
+    error_log("Error en búsqueda de facturación (count): " . $e->getMessage());
+    $error_busqueda = "Error al contar registros: " . $e->getMessage();
+    $total_registros = 0;
+    $total_paginas = 0;
 }
-$stmt->execute();
-$total_registros = $stmt->fetch()['total'];
-$total_paginas = ceil($total_registros / $registros_por_pagina);
 
 // Obtener registros
-$query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
-$stmt = $conn->prepare($query_select);
-foreach ($params as $key => $value) {
-    $stmt->bindValue($key, $value);
+try {
+    $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
+    $stmt = $conn->prepare($query_select);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $registros_por_pagina, PDO::PARAM_INT);
+    $stmt->execute();
+    $documentos = $stmt->fetchAll();
+} catch (PDOException $e) {
+    error_log("Error en búsqueda de facturación (select): " . $e->getMessage());
+    $error_busqueda = "Error al obtener registros: " . $e->getMessage();
+    $documentos = [];
 }
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->bindValue(':limit', $registros_por_pagina, PDO::PARAM_INT);
-$stmt->execute();
-$documentos = $stmt->fetchAll();
 
 $tipo_usuario = obtenerTipoUsuario();
 ?>
@@ -349,6 +365,12 @@ $tipo_usuario = obtenerTipoUsuario();
             </div>
             <?php endif; ?>
 
+            <?php if ($error_busqueda): ?>
+            <div class="alert alert-danger">
+                ⚠️ Error en la búsqueda: <?php echo htmlspecialchars($error_busqueda); ?>
+            </div>
+            <?php endif; ?>
+
             <div class="card">
                 <div class="card-header">
                     <h2>Lista de Documentos (<?php echo $total_registros; ?>)</h2>
@@ -368,16 +390,27 @@ $tipo_usuario = obtenerTipoUsuario();
 
                 <!-- Filtros por tipo -->
                 <div class="filter-buttons">
-                    <a href="index.php" class="filter-btn <?php echo empty($tipo_filtro) ? 'active' : ''; ?>">
+                    <?php
+                    // Construir URL base para filtros manteniendo la búsqueda
+                    $filter_url = "?";
+                    if (!empty($buscar)) {
+                        $filter_url .= "buscar=" . urlencode($buscar);
+                    }
+                    ?>
+                    <a href="index.php<?php echo !empty($buscar) ? '?buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-btn <?php echo empty($tipo_filtro) ? 'active' : ''; ?>">
                         📋 Todos
                     </a>
-                    <a href="?tipo=FACTURA" class="filter-btn <?php echo $tipo_filtro === 'FACTURA' ? 'active' : ''; ?>">
+                    <a href="?tipo=FACTURA<?php echo !empty($buscar) ? '&buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-btn <?php echo $tipo_filtro === 'FACTURA' ? 'active' : ''; ?>">
                         📄 Facturas
                     </a>
-                    <a href="?tipo=BOLETA" class="filter-btn <?php echo $tipo_filtro === 'BOLETA' ? 'active' : ''; ?>">
+                    <a href="?tipo=BOLETA<?php echo !empty($buscar) ? '&buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-btn <?php echo $tipo_filtro === 'BOLETA' ? 'active' : ''; ?>">
                         🧾 Boletas
                     </a>
-                    <a href="?tipo=RECIBO" class="filter-btn <?php echo $tipo_filtro === 'RECIBO' ? 'active' : ''; ?>">
+                    <a href="?tipo=RECIBO<?php echo !empty($buscar) ? '&buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-btn <?php echo $tipo_filtro === 'RECIBO' ? 'active' : ''; ?>">
                         📃 Recibos
                     </a>
                 </div>
@@ -473,9 +506,20 @@ $tipo_usuario = obtenerTipoUsuario();
                 <?php if ($total_paginas > 1): ?>
                 <div class="pagination">
                     <?php
-                    $url_base = "?pagina=";
-                    if (!empty($buscar)) $url_base .= "&buscar=" . urlencode($buscar);
-                    if (!empty($tipo_filtro)) $url_base .= "&tipo=" . urlencode($tipo_filtro);
+                    // Construir URL base para paginación
+                    $url_params = [];
+                    if (!empty($buscar)) {
+                        $url_params[] = "buscar=" . urlencode($buscar);
+                    }
+                    if (!empty($tipo_filtro)) {
+                        $url_params[] = "tipo=" . urlencode($tipo_filtro);
+                    }
+
+                    $url_base = "?";
+                    if (!empty($url_params)) {
+                        $url_base .= implode("&", $url_params) . "&";
+                    }
+                    $url_base .= "pagina=";
                     ?>
 
                     <?php if ($pagina > 1): ?>
