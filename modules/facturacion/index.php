@@ -27,7 +27,7 @@ $query_count = "SELECT COUNT(*) as total
                 WHERE 1=1";
 
 $query_select = "SELECT df.*, df.imagen_adjunta,
-                        c.nombre_razon_social, c.apellido, c.documento,
+                        c.nombre_razon_social, c.apellido, c.documento, c.email,
                         u.nombre as usuario_nombre, u.apellido as usuario_apellido
                  FROM documentos_facturacion df
                  INNER JOIN clientes c ON df.cliente_id = c.id
@@ -54,6 +54,9 @@ if (!empty($tipo_filtro)) {
     $params[':tipo'] = $tipo_filtro;
 }
 
+// Completar query de selección ANTES del try
+$query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
+
 // Contar total de registros
 try {
     $stmt = $conn->prepare($query_count);
@@ -72,7 +75,6 @@ try {
 
 // Obtener registros
 try {
-    $query_select .= " ORDER BY df.creado_en DESC LIMIT :offset, :limit";
     $stmt = $conn->prepare($query_select);
     foreach ($params as $key => $value) {
         $stmt->bindValue($key, $value);
@@ -83,6 +85,8 @@ try {
     $documentos = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Error en búsqueda de facturación (select): " . $e->getMessage());
+    error_log("Query: " . $query_select);
+    error_log("Params: " . print_r($params, true));
     $error_busqueda = "Error al obtener registros: " . $e->getMessage();
     $documentos = [];
 }
