@@ -294,28 +294,46 @@ $tipo_usuario = obtenerTipoUsuario();
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .pagination a,
         .pagination span {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             text-decoration: none;
             color: #333;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: white;
+            min-width: 40px;
+            text-align: center;
         }
 
         .pagination a:hover {
             background: #00509d;
             color: white;
+            border-color: #00509d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 80, 157, 0.3);
         }
 
         .pagination .active {
-            background: #00296b;
+            background: linear-gradient(135deg, #00296b 0%, #00509d 100%);
             color: white;
             border-color: #00296b;
+            box-shadow: 0 4px 12px rgba(0, 41, 107, 0.3);
+        }
+
+        .pagination .dots {
+            border: none;
+            background: transparent;
+            color: #999;
+            padding: 10px 5px;
+            font-weight: bold;
         }
 
         .empty-state {
@@ -513,6 +531,23 @@ $tipo_usuario = obtenerTipoUsuario();
                     </table>
                 </div>
 
+                <!-- Información de paginación -->
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="color: #666;">
+                        <?php
+                        $inicio = $offset + 1;
+                        $fin = min($offset + $registros_por_pagina, $total_registros);
+                        ?>
+                        Mostrando <strong><?php echo $inicio; ?>-<?php echo $fin; ?></strong> de <strong><?php echo $total_registros; ?></strong> documentos
+                    </div>
+
+                    <?php if ($total_paginas > 1): ?>
+                    <div style="color: #666;">
+                        Página <strong><?php echo $pagina; ?></strong> de <strong><?php echo $total_paginas; ?></strong>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Paginación -->
                 <?php if ($total_paginas > 1): ?>
                 <div class="pagination">
@@ -531,13 +566,26 @@ $tipo_usuario = obtenerTipoUsuario();
                         $url_base .= implode("&", $url_params) . "&";
                     }
                     $url_base .= "pagina=";
+
+                    // Configuración de paginación avanzada
+                    $rango = 2; // Mostrar 2 páginas a cada lado de la actual
+                    $inicio_rango = max(1, $pagina - $rango);
+                    $fin_rango = min($total_paginas, $pagina + $rango);
                     ?>
 
+                    <!-- Primera página y Anterior -->
                     <?php if ($pagina > 1): ?>
-                    <a href="<?php echo $url_base . ($pagina - 1); ?>">← Anterior</a>
+                    <a href="<?php echo $url_base; ?>1" title="Primera página">« Primera</a>
+                    <a href="<?php echo $url_base . ($pagina - 1); ?>">‹ Anterior</a>
                     <?php endif; ?>
 
-                    <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
+                    <!-- Puntos suspensivos antes -->
+                    <?php if ($inicio_rango > 1): ?>
+                    <span class="dots">...</span>
+                    <?php endif; ?>
+
+                    <!-- Páginas -->
+                    <?php for ($i = $inicio_rango; $i <= $fin_rango; $i++): ?>
                         <?php if ($i == $pagina): ?>
                             <span class="active"><?php echo $i; ?></span>
                         <?php else: ?>
@@ -545,8 +593,15 @@ $tipo_usuario = obtenerTipoUsuario();
                         <?php endif; ?>
                     <?php endfor; ?>
 
+                    <!-- Puntos suspensivos después -->
+                    <?php if ($fin_rango < $total_paginas): ?>
+                    <span class="dots">...</span>
+                    <?php endif; ?>
+
+                    <!-- Siguiente y Última página -->
                     <?php if ($pagina < $total_paginas): ?>
-                    <a href="<?php echo $url_base . ($pagina + 1); ?>">Siguiente →</a>
+                    <a href="<?php echo $url_base . ($pagina + 1); ?>">Siguiente ›</a>
+                    <a href="<?php echo $url_base . $total_paginas; ?>" title="Última página">Última »</a>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
