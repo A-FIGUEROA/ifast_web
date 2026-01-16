@@ -71,6 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $detalle_descuento = $_POST['detalle_descuento'] ?? '';
     $canal_aduanas = $_POST['canal_aduanas'] ?? '';
 
+    // Pedidos seleccionados (IDs de pedidos pendientes)
+    $pedidos_seleccionados = isset($_POST['pedidos_seleccionados']) ? $_POST['pedidos_seleccionados'] : [];
+
     // Validaciones
     if (empty($tipo_documento) || !in_array($tipo_documento, ['FACTURA', 'BOLETA', 'RECIBO'])) {
         $errores[] = "Tipo de documento inválido";
@@ -113,14 +116,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 5. Envío a provincia ($3 si aplica)
             $costo_envio_provincia = ($envio_provincia === 'SI') ? 3.00 : 0.00;
 
-            // 6. Obtener pendiente de pago del cliente
-            $stmt_pendiente = $conn->prepare("SELECT SUM(monto_pendiente) as total_pendiente
-                                              FROM recibos_pedidos
-                                              WHERE cliente_id = :cliente_id AND pendiente_pago = 'SI'");
-            $stmt_pendiente->bindParam(':cliente_id', $cliente_id);
-            $stmt_pendiente->execute();
-            $pendiente_resultado = $stmt_pendiente->fetch();
-            $pendiente_pago = $pendiente_resultado['total_pendiente'] ?? 0.00;
+            // 6. Calcular pendiente de pago SOLO de los pedidos seleccionados
+            $pendiente_pago = 0.00;
+            if (!empty($pedidos_seleccionados) && is_array($pedidos_seleccionados)) {
+                $placeholders = implode(',', array_fill(0, count($pedidos_seleccionados), '?'));
+                $stmt_pendiente = $conn->prepare("SELECT SUM(monto_pendiente) as total_pendiente
+                                                  FROM recibos_pedidos
+                                                  WHERE id IN ($placeholders) AND pendiente_pago = 'SI'");
+                $stmt_pendiente->execute($pedidos_seleccionados);
+                $pendiente_resultado = $stmt_pendiente->fetch();
+                $pendiente_pago = $pendiente_resultado['total_pendiente'] ?? 0.00;
+            }
 
             // Calcular subtotal
             $subtotal = $costo_peso + $costo_desaduanaje + $costo_cambio_consignatario +
@@ -274,6 +280,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $stmt_update = $conn->prepare("UPDATE guias_masivas SET facturado = 'SI' WHERE id IN ($placeholders)");
                     $stmt_update->execute($guias_ids_array);
+                }
+
+                // Marcar pedidos seleccionados como facturados (pendiente_pago = 'NO')
+                if (!empty($pedidos_seleccionados) && is_array($pedidos_seleccionados)) {
+                    $placeholders_pedidos = implode(',', array_fill(0, count($pedidos_seleccionados), '?'));
+                    $stmt_update_pedidos = $conn->prepare("UPDATE recibos_pedidos SET pendiente_pago = 'NO' WHERE id IN ($placeholders_pedidos)");
+                    $stmt_update_pedidos->execute($pedidos_seleccionados);
                 }
 
                 // Generar y guardar el PDF físicamente
@@ -557,14 +570,7 @@ $tipo_usuario = obtenerTipoUsuario();
                         <select class="form-control" name="cliente_id" id="cliente_id" required>
                             <option value="">-- Seleccionar cliente --</option>
                             <?php foreach ($clientes as $cliente): ?>
-                            <option value="<?php echo $cliente['id']; ?>"
-                                    data-pendiente="<?php
-                                        $stmt_p = $conn->prepare("SELECT SUM(monto_pendiente) as total FROM recibos_pedidos WHERE cliente_id = :id AND pendiente_pago = 'SI'");
-                                        $stmt_p->bindParam(':id', $cliente['id']);
-                                        $stmt_p->execute();
-                                        $pend = $stmt_p->fetch();
-                                        echo $pend['total'] ?? 0;
-                                    ?>">
+                            <option value="<?php echo $cliente['id']; ?>">
                                 <?php
                                 echo $cliente['nombre_razon_social'];
                                 if ($cliente['apellido']) echo ' ' . $cliente['apellido'];
@@ -588,6 +594,26 @@ $tipo_usuario = obtenerTipoUsuario();
                                 <p>No hay guías sin facturar para este cliente</p>
                             </div>
                             <div id="guias_container" style="max-height: 400px; overflow-y: auto; border: 2px solid #e0e0e0; border-radius: 8px; padding: 15px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN PEDIDOS PENDIENTES -->
+                    <div id="seccion_pedidos_pendientes" style="display: none;">
+                        <div class="section-title">💰 Seleccionar Pedidos Pendientes de Pago</div>
+                        <div class="form-group">
+                            <div id="pedidos_loading" style="display: none; padding: 20px; text-align: center; color: #666;">
+                                <i class='bx bx-loader-alt bx-spin' style="font-size: 2rem;"></i>
+                                <p>Cargando pedidos pendientes...</p>
+                            </div>
+                            <div id="pedidos_vacio" style="display: none; padding: 20px; text-align: center; color: #666; background: #f8f9fa; border-radius: 8px;">
+                                <i class='bx bx-money' style="font-size: 2rem;"></i>
+                                <p>Este cliente no tiene pedidos pendientes de pago</p>
+                            </div>
+                            <div id="pedidos_container" style="max-height: 400px; overflow-y: auto; border: 2px solid #e0e0e0; border-radius: 8px; padding: 15px;"></div>
+                        </div>
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3; margin-top: 15px;">
+                            <strong>Total Pendiente Seleccionado:</strong>
+                            <span id="total_pedidos_seleccionados" style="font-size: 1.3rem; font-weight: bold; color: #00296b; margin-left: 10px;">$0.00</span>
                         </div>
                     </div>
 
@@ -642,22 +668,13 @@ $tipo_usuario = obtenerTipoUsuario();
                         </div>
                     </div>
 
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Envío a Provincia</label>
-                            <div class="checkbox-group">
-                                <input type="checkbox" name="envio_provincia_check" id="envio_provincia_check" value="SI">
-                                <label for="envio_provincia_check" style="margin: 0;">Aplica envío a provincia ($3)</label>
-                            </div>
-                            <input type="hidden" name="envio_provincia" id="envio_provincia" value="NO">
+                    <div class="form-group">
+                        <label>Envío a Provincia</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="envio_provincia_check" id="envio_provincia_check" value="SI">
+                            <label for="envio_provincia_check" style="margin: 0;">Aplica envío a provincia ($3)</label>
                         </div>
-
-                        <div class="form-group">
-                            <label>Pendiente de Pago (Automático)</label>
-                            <input type="text" class="form-control readonly-field" id="pendiente_pago_display"
-                                   value="$0.00" readonly>
-                            <small class="info-text">Se calcula automáticamente desde pedidos</small>
-                        </div>
+                        <input type="hidden" name="envio_provincia" id="envio_provincia" value="NO">
                     </div>
 
                     <div class="form-grid">
@@ -741,6 +758,9 @@ $tipo_usuario = obtenerTipoUsuario();
         let modoActual = 'MANUAL';
         let guiasSeleccionadas = [];
         let pesoAjustadoGuias = 0; // Peso ajustado para cálculo de costo
+        let pedidosSeleccionados = []; // IDs de pedidos seleccionados
+        let pedidosDisponibles = []; // Pedidos pendientes del cliente
+        let tienePedidosPendientes = false; // Flag para validación
 
         // Función para calcular totales
         function calcularTotales() {
@@ -963,6 +983,109 @@ $tipo_usuario = obtenerTipoUsuario();
             calcularTotales();
         }
 
+        // ========================================
+        // FUNCIONES PARA PEDIDOS PENDIENTES
+        // ========================================
+
+        // Cargar pedidos pendientes desde la API
+        function cargarPedidosPendientes(clienteId) {
+            document.getElementById('pedidos_loading').style.display = 'block';
+            document.getElementById('pedidos_vacio').style.display = 'none';
+            document.getElementById('pedidos_container').innerHTML = '';
+            document.getElementById('seccion_pedidos_pendientes').style.display = 'block';
+
+            fetch(`api_pedidos_pendientes.php?cliente_id=${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('pedidos_loading').style.display = 'none';
+
+                    if (data.success && data.pedidos.length > 0) {
+                        pedidosDisponibles = data.pedidos;
+                        tienePedidosPendientes = true;
+                        renderizarPedidos(data.pedidos);
+                    } else {
+                        pedidosDisponibles = [];
+                        tienePedidosPendientes = false;
+                        document.getElementById('pedidos_vacio').style.display = 'block';
+                        // Reset pendiente de pago
+                        pendientePago = 0;
+                        document.getElementById('total_pedidos_seleccionados').textContent = '$0.00';
+                        calcularTotales();
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('pedidos_loading').style.display = 'none';
+                    console.error('Error al cargar pedidos:', error);
+                    alert('Error al cargar los pedidos pendientes. Por favor intenta nuevamente.');
+                    tienePedidosPendientes = false;
+                });
+        }
+
+        // Renderizar lista de pedidos con checkboxes
+        function renderizarPedidos(pedidos) {
+            const container = document.getElementById('pedidos_container');
+            container.innerHTML = '';
+
+            pedidos.forEach(pedido => {
+                const pedidoCard = document.createElement('div');
+                pedidoCard.style.cssText = 'border: 2px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: white; transition: all 0.3s;';
+
+                const fecha = new Date(pedido.subido_en);
+                const fechaFormateada = fecha.toLocaleDateString('es-PE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+
+                pedidoCard.innerHTML = `
+                    <label style="display: flex; gap: 15px; cursor: pointer; align-items: start;">
+                        <input type="checkbox" name="pedidos_seleccionados[]" value="${pedido.id}"
+                               data-monto="${pedido.monto_pendiente}"
+                               onchange="actualizarPendientePago()"
+                               style="width: 20px; height: 20px; margin-top: 5px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 1rem; color: #00296b; margin-bottom: 5px;">
+                                💰 Pedido #${pedido.id}
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 0.9rem; color: #555;">
+                                <div><strong>Monto:</strong> $${parseFloat(pedido.monto_pendiente).toFixed(2)}</div>
+                                <div><strong>Fecha:</strong> ${fechaFormateada}</div>
+                                <div><strong>Trackings:</strong> ${pedido.total_trackings}</div>
+                            </div>
+                        </div>
+                    </label>
+                `;
+
+                // Hover effect
+                pedidoCard.addEventListener('mouseenter', function() {
+                    this.style.borderColor = '#00509d';
+                    this.style.boxShadow = '0 3px 10px rgba(0,80,157,0.2)';
+                });
+                pedidoCard.addEventListener('mouseleave', function() {
+                    this.style.borderColor = '#e0e0e0';
+                    this.style.boxShadow = 'none';
+                });
+
+                container.appendChild(pedidoCard);
+            });
+        }
+
+        // Actualizar pendiente de pago cuando se seleccionan/deseleccionan pedidos
+        function actualizarPendientePago() {
+            const checkboxes = document.querySelectorAll('input[name="pedidos_seleccionados[]"]:checked');
+            pedidosSeleccionados = [];
+            let total = 0;
+
+            checkboxes.forEach(checkbox => {
+                pedidosSeleccionados.push(checkbox.value);
+                total += parseFloat(checkbox.dataset.monto);
+            });
+
+            pendientePago = total;
+            document.getElementById('total_pedidos_seleccionados').textContent = '$' + total.toFixed(2);
+            calcularTotales();
+        }
+
         // Event listeners
         document.getElementById('modo_manual').addEventListener('change', cambiarModo);
         document.getElementById('modo_desde_guia').addEventListener('change', cambiarModo);
@@ -976,16 +1099,25 @@ $tipo_usuario = obtenerTipoUsuario();
         document.getElementById('gastos_adicionales').addEventListener('input', calcularTotales);
         document.getElementById('descuento').addEventListener('input', calcularTotales);
 
-        // Cuando se selecciona un cliente, cargar su pendiente de pago
+        // Cuando se selecciona un cliente, cargar pedidos pendientes y/o guías
         document.getElementById('cliente_id').addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            pendientePago = parseFloat(selectedOption.dataset.pendiente) || 0;
-            document.getElementById('pendiente_pago_display').value = '$' + pendientePago.toFixed(2);
-            calcularTotales();
+            const clienteId = this.value;
 
-            // Si está en modo DESDE_GUIA, cargar las guías del cliente
-            if (modoActual === 'DESDE_GUIA' && this.value) {
-                cargarGuias(this.value);
+            if (clienteId) {
+                // Cargar pedidos pendientes SIEMPRE
+                cargarPedidosPendientes(clienteId);
+
+                // Si está en modo DESDE_GUIA, cargar las guías del cliente
+                if (modoActual === 'DESDE_GUIA') {
+                    cargarGuias(clienteId);
+                }
+            } else {
+                // Si no hay cliente seleccionado, ocultar sección de pedidos
+                document.getElementById('seccion_pedidos_pendientes').style.display = 'none';
+                pendientePago = 0;
+                pedidosSeleccionados = [];
+                tienePedidosPendientes = false;
+                calcularTotales();
             }
         });
 
@@ -1010,6 +1142,15 @@ $tipo_usuario = obtenerTipoUsuario();
             if (!peso || peso <= 0) {
                 e.preventDefault();
                 alert('Debe ingresar un peso total válido');
+                return false;
+            }
+
+            // VALIDACIÓN OBLIGATORIA: Si el cliente tiene pedidos pendientes, debe seleccionar al menos uno
+            if (tienePedidosPendientes && pedidosSeleccionados.length === 0) {
+                e.preventDefault();
+                alert('⚠️ Este cliente tiene pedidos pendientes de pago.\n\nDebe seleccionar al menos un pedido pendiente para incluir en esta factura.');
+                // Scroll a la sección de pedidos pendientes
+                document.getElementById('seccion_pedidos_pendientes').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
             }
         });
