@@ -397,6 +397,132 @@ $nombre_usuario = obtenerNombreUsuario();
             100% { transform: rotate(360deg); }
         }
 
+        /* Estilos para reporte de asignaciones */
+        .report-summary {
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-box {
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-box.success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .stat-box.warning {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .stat-box.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .stat-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .stat-box .number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-box.success .number { color: #28a745; }
+        .stat-box.warning .number { color: #f57c00; }
+        .stat-box.error .number { color: #dc3545; }
+
+        .stat-box button {
+            margin-top: 10px;
+            padding: 8px 15px;
+            border: none;
+            background: #00509D;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .stat-box button:hover {
+            background: #00296B;
+        }
+
+        /* Modal para detalles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-close {
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .detail-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .detail-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #00509D;
+        }
+
+        .detail-item strong {
+            color: #00296B;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 margin-left: 0;
@@ -507,6 +633,10 @@ $nombre_usuario = obtenerNombreUsuario();
 
                 <div class="preview-section" id="previewSection">
                     <div class="file-info" id="fileInfo"></div>
+
+                    <!-- REPORTE DE ASIGNACIONES -->
+                    <div class="report-summary" id="reportSummary"></div>
+
                     <h3 style="margin-bottom: 15px;">Vista Previa (Primeras 10 filas)</h3>
                     <div class="table-container" id="previewTable"></div>
                     <div class="btn-group">
@@ -518,6 +648,17 @@ $nombre_usuario = obtenerNombreUsuario();
                             <i class='bx bx-x'></i>
                             Cancelar
                         </button>
+                    </div>
+                </div>
+
+                <!-- MODAL PARA DETALLES -->
+                <div class="modal" id="modalDetalles">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalTitle">Detalles</h3>
+                            <span class="modal-close" onclick="cerrarModal()">&times;</span>
+                        </div>
+                        <div id="modalBody"></div>
                     </div>
                 </div>
             </div>
@@ -603,7 +744,12 @@ $nombre_usuario = obtenerNombreUsuario();
             });
         }
 
+        // Variable global para datos del reporte
+        let reportData = null;
+
         function mostrarPreview(data) {
+            reportData = data; // Guardar para modales
+
             // Mostrar información del archivo
             document.getElementById('fileInfo').innerHTML = `
                 <i class='bx bxs-file-doc'></i>
@@ -613,15 +759,57 @@ $nombre_usuario = obtenerNombreUsuario();
                 </div>
             `;
 
+            // Generar reporte de asignaciones
+            let reportHTML = '';
+
+            // Asignaciones automáticas
+            if (data.asignaciones_automaticas && data.asignaciones_automaticas.total > 0) {
+                reportHTML += `
+                    <div class="stat-box success">
+                        <h4>Asignaciones Automáticas</h4>
+                        <div class="number">${data.asignaciones_automaticas.total}</div>
+                        <p>Guías asignadas automáticamente a clientes</p>
+                        <button onclick="verDetalle('asignadas')">Ver Detalle</button>
+                    </div>
+                `;
+            }
+
+            // Sin asignar
+            if (data.sin_asignar && data.sin_asignar.total > 0) {
+                reportHTML += `
+                    <div class="stat-box warning">
+                        <h4>Sin Asignar</h4>
+                        <div class="number">${data.sin_asignar.total}</div>
+                        <p>Guías que requieren asignación manual</p>
+                        <button onclick="verDetalle('sin_asignar')">Ver Detalle</button>
+                    </div>
+                `;
+            }
+
+            // Errores/omitidos
+            if (data.registros_error > 0) {
+                reportHTML += `
+                    <div class="stat-box error">
+                        <h4>Omitidos</h4>
+                        <div class="number">${data.registros_error}</div>
+                        <p>Registros con errores (duplicados, etc)</p>
+                        <button onclick="verDetalle('errores')">Ver Detalle</button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('reportSummary').innerHTML = reportHTML;
+
             // Crear tabla de preview
             let tableHTML = '<table><thead><tr>';
-            tableHTML += '<th>N° Guía</th><th>Consignatario</th><th>Descripción</th><th>PCS</th><th>Peso (kg)</th><th>Valor FOB</th><th>Fecha Embarque</th>';
+            tableHTML += '<th>N° Guía</th><th>Consignatario</th><th>RUC/DNI</th><th>Descripción</th><th>PCS</th><th>Peso (kg)</th><th>Valor FOB</th><th>Fecha Embarque</th>';
             tableHTML += '</tr></thead><tbody>';
 
             data.preview.forEach(row => {
                 tableHTML += '<tr>';
                 tableHTML += `<td>${row.nro_guia}</td>`;
                 tableHTML += `<td>${row.consignatario}</td>`;
+                tableHTML += `<td>${row.documento_cliente || '-'}</td>`;
                 tableHTML += `<td>${row.descripcion || '-'}</td>`;
                 tableHTML += `<td>${row.pcs}</td>`;
                 tableHTML += `<td>${row.peso_kg}</td>`;
@@ -635,6 +823,70 @@ $nombre_usuario = obtenerNombreUsuario();
 
             previewSection.classList.add('show');
         }
+
+        // Función para mostrar detalles en modal
+        function verDetalle(tipo) {
+            const modal = document.getElementById('modalDetalles');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+
+            let content = '';
+
+            if (tipo === 'asignadas') {
+                modalTitle.textContent = `Asignaciones Automáticas (${reportData.asignaciones_automaticas.total})`;
+                content = '<ul class="detail-list">';
+                reportData.asignaciones_automaticas.detalles.forEach(item => {
+                    content += `
+                        <li class="detail-item">
+                            <strong>Guía:</strong> ${item.nro_guia}<br>
+                            <strong>Cliente:</strong> ${item.cliente_nombre}<br>
+                            <strong>Documento:</strong> ${item.documento}
+                        </li>
+                    `;
+                });
+                content += '</ul>';
+            } else if (tipo === 'sin_asignar') {
+                modalTitle.textContent = `Sin Asignar (${reportData.sin_asignar.total})`;
+                content = '<ul class="detail-list">';
+                reportData.sin_asignar.detalles.forEach(item => {
+                    content += `
+                        <li class="detail-item">
+                            <strong>Guía:</strong> ${item.nro_guia}<br>
+                            <strong>Documento buscado:</strong> ${item.documento_buscado || 'N/A'}<br>
+                            <strong>Razón:</strong> ${item.razon}
+                        </li>
+                    `;
+                });
+                content += '</ul>';
+            } else if (tipo === 'errores') {
+                modalTitle.textContent = `Registros Omitidos (${reportData.registros_error})`;
+                content = '<ul class="detail-list">';
+                reportData.errores.forEach(item => {
+                    content += `
+                        <li class="detail-item">
+                            <strong>Fila:</strong> ${item.fila}<br>
+                            <strong>Error:</strong> ${item.error}
+                        </li>
+                    `;
+                });
+                content += '</ul>';
+            }
+
+            modalBody.innerHTML = content;
+            modal.classList.add('show');
+        }
+
+        // Función para cerrar modal
+        function cerrarModal() {
+            document.getElementById('modalDetalles').classList.remove('show');
+        }
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('modalDetalles').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModal();
+            }
+        });
 
         // Confirmar importación
         document.getElementById('btnConfirmar').addEventListener('click', () => {

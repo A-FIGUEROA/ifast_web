@@ -39,6 +39,7 @@ $errores = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $consignatario = limpiarDatos($_POST['consignatario']);
     $cliente = limpiarDatos($_POST['cliente'] ?? '');
+    $documento_cliente = limpiarDatos($_POST['documento_cliente'] ?? '');
     $descripcion = limpiarDatos($_POST['descripcion'] ?? '');
     $pcs = (int)($_POST['pcs'] ?? 0);
     $peso_kg = (float)($_POST['peso_kg'] ?? 0);
@@ -58,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 UPDATE guias_masivas
                 SET consignatario = :consignatario,
                     cliente = :cliente,
+                    documento_cliente = :documento_cliente,
                     descripcion = :descripcion,
                     pcs = :pcs,
                     peso_kg = :peso_kg,
@@ -71,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $stmt->bindParam(':consignatario', $consignatario);
             $stmt->bindParam(':cliente', $cliente);
+            $stmt->bindParam(':documento_cliente', $documento_cliente);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->bindParam(':pcs', $pcs);
             $stmt->bindParam(':peso_kg', $peso_kg);
@@ -419,6 +422,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             placeholder="Nombre del cliente"
                             value="<?php echo htmlspecialchars($guia['cliente'] ?? ''); ?>"
                         >
+                    </div>
+
+                    <div class="form-group">
+                        <label>RUC/DNI del Cliente</label>
+                        <input
+                            type="text"
+                            name="documento_cliente"
+                            class="form-control"
+                            placeholder="Ej: 20123456789"
+                            maxlength="20"
+                            value="<?php echo htmlspecialchars($guia['documento_cliente'] ?? ''); ?>"
+                        >
+                        <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">
+                            Documento para búsqueda automática de cliente en base de datos
+                        </small>
                     </div>
 
                     <div class="form-group">

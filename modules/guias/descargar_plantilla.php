@@ -18,8 +18,8 @@ $sheet = $spreadsheet->getActiveSheet();
 $sheet->setTitle('Guías');
 
 // Encabezados
-$headers = ['ID', '# GUIA', 'CONSIGNATARIO', 'CLIENTE', 'DESCRIPCION', 'PCS', 'PESO  MANIF. KG', 'VALOR FOB US$. ', 'FECHA DE EMBARQUE', 'ASESOR'];
-$columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+$headers = ['ID', '# GUIA', 'CONSIGNATARIO', 'CLIENTE', 'RUC/DNI', 'DESCRIPCION', 'PCS', 'PESO  MANIF. KG', 'VALOR FOB US$. ', 'FECHA DE EMBARQUE', 'ASESOR'];
+$columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
 // Escribir encabezados
 foreach ($columns as $index => $col) {
@@ -49,31 +49,33 @@ $headerStyle = [
     ]
 ];
 
-$sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+$sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
 
 // Ajustar ancho de columnas
 $sheet->getColumnDimension('A')->setWidth(8);   // ID
 $sheet->getColumnDimension('B')->setWidth(20);  // # GUIA
 $sheet->getColumnDimension('C')->setWidth(30);  // CONSIGNATARIO
 $sheet->getColumnDimension('D')->setWidth(30);  // CLIENTE
-$sheet->getColumnDimension('E')->setWidth(35);  // DESCRIPCION
-$sheet->getColumnDimension('F')->setWidth(8);   // PCS
-$sheet->getColumnDimension('G')->setWidth(15);  // PESO MANIF. KG
-$sheet->getColumnDimension('H')->setWidth(15);  // VALOR FOB US$
-$sheet->getColumnDimension('I')->setWidth(18);  // FECHA DE EMBARQUE
-$sheet->getColumnDimension('J')->setWidth(25);  // ASESOR
+$sheet->getColumnDimension('E')->setWidth(15);  // RUC/DNI
+$sheet->getColumnDimension('F')->setWidth(35);  // DESCRIPCION
+$sheet->getColumnDimension('G')->setWidth(8);   // PCS
+$sheet->getColumnDimension('H')->setWidth(15);  // PESO MANIF. KG
+$sheet->getColumnDimension('I')->setWidth(15);  // VALOR FOB US$
+$sheet->getColumnDimension('J')->setWidth(18);  // FECHA DE EMBARQUE
+$sheet->getColumnDimension('K')->setWidth(25);  // ASESOR
 
 // Agregar fila de ejemplo
 $sheet->setCellValue('A2', '1');
 $sheet->setCellValue('B2', 'HAWBO0086411');
 $sheet->setCellValue('C2', 'JUAN PEREZ GARCIA');
 $sheet->setCellValue('D2', 'IMPORTACIONES ABC SAC');
-$sheet->setCellValue('E2', 'MUÑECOS DE COLECCIÓN');
-$sheet->setCellValue('F2', '5');
-$sheet->setCellValue('G2', '8.25');
-$sheet->setCellValue('H2', '194.21');
-$sheet->setCellValue('I2', '1-sep');
-$sheet->setCellValue('J2', 'CARLOS RAMIREZ');
+$sheet->setCellValue('E2', '20123456789');
+$sheet->setCellValue('F2', 'MUÑECOS DE COLECCIÓN');
+$sheet->setCellValue('G2', '5');
+$sheet->setCellValue('H2', '8.25');
+$sheet->setCellValue('I2', '194.21');
+$sheet->setCellValue('J2', '1-sep');
+$sheet->setCellValue('K2', 'CARLOS RAMIREZ');
 
 // Estilo de fila de ejemplo
 $exampleStyle = [
@@ -86,11 +88,11 @@ $exampleStyle = [
         'startColor' => ['rgb' => 'F0F0F0']
     ]
 ];
-$sheet->getStyle('A2:J2')->applyFromArray($exampleStyle);
+$sheet->getStyle('A2:K2')->applyFromArray($exampleStyle);
 
 // Agregar nota
-$sheet->setCellValue('A4', 'NOTA: Esta es una fila de ejemplo. Elimínala antes de subir tu archivo.');
-$sheet->mergeCells('A4:J4');
+$sheet->setCellValue('A4', 'NOTA: Esta es una fila de ejemplo. El RUC/DNI debe coincidir exactamente con un cliente registrado para asignación automática. Elimínala antes de subir tu archivo.');
+$sheet->mergeCells('A4:K4');
 $sheet->getStyle('A4')->applyFromArray([
     'font' => ['italic' => true, 'color' => ['rgb' => 'FF0000']],
     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]

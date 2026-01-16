@@ -53,6 +53,8 @@ try {
 
     $datos_validos = [];
     $errores = [];
+    $asignaciones_automaticas = [];
+    $sin_asignar = [];
 
     // Leer datos del Excel (desde fila 2, la 1 son encabezados)
     for ($row = 2; $row <= $highestRow; $row++) {
@@ -61,12 +63,13 @@ try {
             $nro_guia = trim($worksheet->getCell('B' . $row)->getValue());
             $consignatario = trim($worksheet->getCell('C' . $row)->getValue());
             $cliente = trim($worksheet->getCell('D' . $row)->getValue());
-            $descripcion = trim($worksheet->getCell('E' . $row)->getValue());
-            $pcs = (int)$worksheet->getCell('F' . $row)->getValue();
-            $peso_kg = (float)$worksheet->getCell('G' . $row)->getValue();
-            $valor_fob_usd = (float)$worksheet->getCell('H' . $row)->getValue();
-            $fecha_embarque_raw = $worksheet->getCell('I' . $row)->getValue();
-            $asesor = trim($worksheet->getCell('J' . $row)->getValue());
+            $documento_cliente = trim($worksheet->getCell('E' . $row)->getValue());
+            $descripcion = trim($worksheet->getCell('F' . $row)->getValue());
+            $pcs = (int)$worksheet->getCell('G' . $row)->getValue();
+            $peso_kg = (float)$worksheet->getCell('H' . $row)->getValue();
+            $valor_fob_usd = (float)$worksheet->getCell('I' . $row)->getValue();
+            $fecha_embarque_raw = $worksheet->getCell('J' . $row)->getValue();
+            $asesor = trim($worksheet->getCell('K' . $row)->getValue());
 
             // Convertir fecha
             $fecha_embarque = null;
@@ -132,17 +135,67 @@ try {
                 throw new Exception("N° guía duplicado: $nro_guia");
             }
 
+            // BÚSQUEDA AUTOMÁTICA ESTRICTA por RUC/DNI
+            $cliente_id = null;
+            $cliente_nombre_completo = null;
+
+            if (!empty($documento_cliente)) {
+                $stmt_buscar = $conn->prepare("
+                    SELECT id, nombre_razon_social, apellido
+                    FROM clientes
+                    WHERE documento = :documento
+                    LIMIT 1
+                ");
+                $stmt_buscar->bindParam(':documento', $documento_cliente);
+                $stmt_buscar->execute();
+                $resultado_cliente = $stmt_buscar->fetch();
+
+                if ($resultado_cliente) {
+                    // ENCONTRADO - Asignar automáticamente
+                    $cliente_id = $resultado_cliente['id'];
+                    $cliente_nombre_completo = $resultado_cliente['nombre_razon_social'];
+                    if (!empty($resultado_cliente['apellido'])) {
+                        $cliente_nombre_completo .= ' ' . $resultado_cliente['apellido'];
+                    }
+
+                    // Registrar asignación automática
+                    $asignaciones_automaticas[] = [
+                        'nro_guia' => $nro_guia,
+                        'cliente_nombre' => $cliente_nombre_completo,
+                        'documento' => $documento_cliente
+                    ];
+                } else {
+                    // NO ENCONTRADO - Registrar sin asignar
+                    $sin_asignar[] = [
+                        'nro_guia' => $nro_guia,
+                        'documento_buscado' => $documento_cliente,
+                        'razon' => 'Documento no encontrado en BD'
+                    ];
+                }
+            } else {
+                // Sin documento proporcionado
+                if (!empty($cliente)) {
+                    $sin_asignar[] = [
+                        'nro_guia' => $nro_guia,
+                        'documento_buscado' => '',
+                        'razon' => 'No se proporcionó documento'
+                    ];
+                }
+            }
+
             // Si llegó aquí, el registro es válido
             $datos_validos[] = [
                 'nro_guia' => $nro_guia,
                 'consignatario' => $consignatario,
                 'cliente' => $cliente,
+                'documento_cliente' => $documento_cliente,
                 'descripcion' => $descripcion,
                 'pcs' => $pcs,
                 'peso_kg' => $peso_kg,
                 'valor_fob_usd' => $valor_fob_usd,
                 'fecha_embarque' => $fecha_embarque,
                 'asesor' => $asesor,
+                'cliente_id' => $cliente_id,
                 'fila' => $row
             ];
 
@@ -159,6 +212,16 @@ try {
     $response['registros_error'] = count($errores);
     $response['nombre_archivo'] = $archivo['name'];
 
+    // Agregar reportes de asignación automática
+    $response['asignaciones_automaticas'] = [
+        'total' => count($asignaciones_automaticas),
+        'detalles' => $asignaciones_automaticas
+    ];
+    $response['sin_asignar'] = [
+        'total' => count($sin_asignar),
+        'detalles' => $sin_asignar
+    ];
+
     // Si es modo preview, devolver primeras 10 filas
     if ($preview_mode) {
         $response['success'] = true;
@@ -174,9 +237,9 @@ try {
 
         $stmt = $conn->prepare("
             INSERT INTO guias_masivas
-            (nro_guia, consignatario, cliente, descripcion, pcs, peso_kg, valor_fob_usd, fecha_embarque, asesor, estado, metodo_ingreso, nombre_archivo_origen, creado_por)
+            (nro_guia, consignatario, cliente, documento_cliente, descripcion, pcs, peso_kg, valor_fob_usd, fecha_embarque, asesor, estado, cliente_id, metodo_ingreso, nombre_archivo_origen, creado_por)
             VALUES
-            (:nro_guia, :consignatario, :cliente, :descripcion, :pcs, :peso_kg, :valor_fob_usd, :fecha_embarque, :asesor, 'PENDIENTE', 'EXCEL', :nombre_archivo, :creado_por)
+            (:nro_guia, :consignatario, :cliente, :documento_cliente, :descripcion, :pcs, :peso_kg, :valor_fob_usd, :fecha_embarque, :asesor, 'PENDIENTE', :cliente_id, 'EXCEL', :nombre_archivo, :creado_por)
         ");
 
         $importados = 0;
@@ -185,12 +248,14 @@ try {
                 $stmt->bindParam(':nro_guia', $dato['nro_guia']);
                 $stmt->bindParam(':consignatario', $dato['consignatario']);
                 $stmt->bindParam(':cliente', $dato['cliente']);
+                $stmt->bindParam(':documento_cliente', $dato['documento_cliente']);
                 $stmt->bindParam(':descripcion', $dato['descripcion']);
                 $stmt->bindParam(':pcs', $dato['pcs']);
                 $stmt->bindParam(':peso_kg', $dato['peso_kg']);
                 $stmt->bindParam(':valor_fob_usd', $dato['valor_fob_usd']);
                 $stmt->bindParam(':fecha_embarque', $dato['fecha_embarque']);
                 $stmt->bindParam(':asesor', $dato['asesor']);
+                $stmt->bindParam(':cliente_id', $dato['cliente_id']);
                 $stmt->bindParam(':nombre_archivo', $archivo['name']);
                 $stmt->bindParam(':creado_por', $_SESSION['usuario_id']);
 

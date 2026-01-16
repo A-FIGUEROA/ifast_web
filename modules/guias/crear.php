@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nro_guia = limpiarDatos($_POST['nro_guia']);
     $consignatario = limpiarDatos($_POST['consignatario']);
     $cliente = limpiarDatos($_POST['cliente'] ?? '');
+    $documento_cliente = limpiarDatos($_POST['documento_cliente'] ?? '');
     $descripcion = limpiarDatos($_POST['descripcion'] ?? '');
     $pcs = (int)($_POST['pcs'] ?? 0);
     $peso_kg = (float)($_POST['peso_kg'] ?? 0);
@@ -66,14 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $conn->prepare("
                 INSERT INTO guias_masivas
-                (nro_guia, consignatario, cliente, descripcion, pcs, peso_kg, valor_fob_usd, fecha_embarque, asesor, estado, cliente_id, metodo_ingreso, creado_por)
+                (nro_guia, consignatario, cliente, documento_cliente, descripcion, pcs, peso_kg, valor_fob_usd, fecha_embarque, asesor, estado, cliente_id, metodo_ingreso, creado_por)
                 VALUES
-                (:nro_guia, :consignatario, :cliente, :descripcion, :pcs, :peso_kg, :valor_fob_usd, :fecha_embarque, :asesor, :estado, :cliente_id, 'MANUAL', :creado_por)
+                (:nro_guia, :consignatario, :cliente, :documento_cliente, :descripcion, :pcs, :peso_kg, :valor_fob_usd, :fecha_embarque, :asesor, :estado, :cliente_id, 'MANUAL', :creado_por)
             ");
 
             $stmt->bindParam(':nro_guia', $nro_guia);
             $stmt->bindParam(':consignatario', $consignatario);
             $stmt->bindParam(':cliente', $cliente);
+            $stmt->bindParam(':documento_cliente', $documento_cliente);
             $stmt->bindParam(':descripcion', $descripcion);
             $stmt->bindParam(':pcs', $pcs);
             $stmt->bindParam(':peso_kg', $peso_kg);
@@ -419,6 +421,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             placeholder="Nombre del cliente"
                             value="<?php echo isset($_POST['cliente']) ? htmlspecialchars($_POST['cliente']) : ''; ?>"
                         >
+                    </div>
+
+                    <div class="form-group">
+                        <label>RUC/DNI del Cliente</label>
+                        <input
+                            type="text"
+                            name="documento_cliente"
+                            class="form-control"
+                            placeholder="Ej: 20123456789"
+                            maxlength="20"
+                            value="<?php echo isset($_POST['documento_cliente']) ? htmlspecialchars($_POST['documento_cliente']) : ''; ?>"
+                        >
+                        <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">
+                            Documento para búsqueda automática de cliente en base de datos
+                        </small>
                     </div>
 
                     <div class="form-group">
