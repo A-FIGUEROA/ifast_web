@@ -16,6 +16,9 @@ $registros_por_pagina = 10;
 // Búsqueda
 $buscar = isset($_GET['buscar']) ? limpiarDatos($_GET['buscar']) : '';
 
+// Filtro de estado (TODOS por defecto)
+$filtro_estado = isset($_GET['estado']) ? limpiarDatos($_GET['estado']) : 'TODOS';
+
 // Query base - ahora con contador de trackings
 $query_count = "SELECT COUNT(DISTINCT rp.id) as total FROM recibos_pedidos rp INNER JOIN clientes c ON rp.cliente_id = c.id";
 $query_select = "
@@ -31,22 +34,42 @@ $query_select = "
     INNER JOIN clientes c ON rp.cliente_id = c.id
 ";
 
-// Si hay búsqueda (ahora busca en la tabla de trackings)
+// Construir condiciones WHERE
+$conditions = [];
+$params = [];
+
+// Filtro por estado
+if ($filtro_estado === 'EMBARCADO') {
+    // Solo pedidos donde TODOS los trackings están embarcados
+    $query_count .= " INNER JOIN pedidos_trackings pt ON rp.id = pt.recibo_pedido_id";
+    $conditions[] = "NOT EXISTS (SELECT 1 FROM pedidos_trackings pt2 WHERE pt2.recibo_pedido_id = rp.id AND pt2.estado_embarque = 'PENDIENTE')";
+    $conditions[] = "EXISTS (SELECT 1 FROM pedidos_trackings pt3 WHERE pt3.recibo_pedido_id = rp.id AND pt3.estado_embarque = 'EMBARCADO')";
+} elseif ($filtro_estado === 'PENDIENTE') {
+    // Pedidos que tienen al menos un tracking pendiente
+    $conditions[] = "EXISTS (SELECT 1 FROM pedidos_trackings pt WHERE pt.recibo_pedido_id = rp.id AND pt.estado_embarque = 'PENDIENTE')";
+}
+
+// Búsqueda
 if (!empty($buscar)) {
-    $where = " WHERE c.nombre_razon_social LIKE :buscar1 OR c.documento LIKE :buscar2 OR rp.id IN (SELECT recibo_pedido_id FROM pedidos_trackings WHERE tracking_code LIKE :buscar3)";
-    $query_count .= $where;
-    $query_select .= $where;
+    $conditions[] = "(c.nombre_razon_social LIKE :buscar1 OR c.documento LIKE :buscar2 OR rp.id IN (SELECT recibo_pedido_id FROM pedidos_trackings WHERE tracking_code LIKE :buscar3))";
+    $params[':buscar1'] = "%{$buscar}%";
+    $params[':buscar2'] = "%{$buscar}%";
+    $params[':buscar3'] = "%{$buscar}%";
+}
+
+// Agregar WHERE si hay condiciones
+if (count($conditions) > 0) {
+    $where_clause = " WHERE " . implode(" AND ", $conditions);
+    $query_count .= $where_clause;
+    $query_select .= $where_clause;
 }
 
 $query_select .= " ORDER BY rp.subido_en DESC LIMIT :limit OFFSET :offset";
 
 // Total de pedidos
 $stmt = $conn->prepare($query_count);
-if (!empty($buscar)) {
-    $buscar_param = "%{$buscar}%";
-    $stmt->bindValue(':buscar1', $buscar_param);
-    $stmt->bindValue(':buscar2', $buscar_param);
-    $stmt->bindValue(':buscar3', $buscar_param);
+foreach ($params as $key => $value) {
+    $stmt->bindValue($key, $value);
 }
 $stmt->execute();
 $total_pedidos = $stmt->fetch()['total'];
@@ -56,11 +79,8 @@ $paginacion = paginar($total_pedidos, $registros_por_pagina, $pagina);
 
 // Obtener pedidos
 $stmt = $conn->prepare($query_select);
-if (!empty($buscar)) {
-    $buscar_param = "%{$buscar}%";
-    $stmt->bindValue(':buscar1', $buscar_param);
-    $stmt->bindValue(':buscar2', $buscar_param);
-    $stmt->bindValue(':buscar3', $buscar_param);
+foreach ($params as $key => $value) {
+    $stmt->bindValue($key, $value);
 }
 $stmt->bindValue(':limit', $paginacion['registros_por_pagina'], PDO::PARAM_INT);
 $stmt->bindValue(':offset', $paginacion['offset'], PDO::PARAM_INT);
@@ -143,6 +163,38 @@ $clientes_lista = $stmt->fetchAll();
 
         .content {
             padding: 30px;
+        }
+
+        /* FILTER TABS */
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .filter-tab:hover {
+            background: #d5dbdb;
+            color: #2c3e50;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #00296b 0%, #00509d 100%);
+            color: white;
         }
 
         .card {
@@ -602,17 +654,34 @@ $clientes_lista = $stmt->fetchAll();
                 </div>
                 <?php endif; ?>
 
+                <!-- FILTROS POR ESTADO -->
+                <div class="filter-tabs">
+                    <a href="?estado=TODOS<?php echo !empty($buscar) ? '&buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-tab <?php echo $filtro_estado === 'TODOS' ? 'active' : ''; ?>">
+                        📋 Todos
+                    </a>
+                    <a href="?estado=PENDIENTE<?php echo !empty($buscar) ? '&buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-tab <?php echo $filtro_estado === 'PENDIENTE' ? 'active' : ''; ?>">
+                        ⏳ Pendientes
+                    </a>
+                    <a href="?estado=EMBARCADO<?php echo !empty($buscar) ? '&buscar=' . urlencode($buscar) : ''; ?>"
+                       class="filter-tab <?php echo $filtro_estado === 'EMBARCADO' ? 'active' : ''; ?>">
+                        ✅ Embarcados
+                    </a>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h2>Lista de Recibos (<?php echo $total_pedidos; ?>)</h2>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <form method="GET" class="search-container">
+                                <input type="hidden" name="estado" value="<?php echo htmlspecialchars($filtro_estado); ?>">
                                 <input type="text" name="buscar" class="search-box"
                                        placeholder="🔍 Buscar por tracking, cliente..."
                                        value="<?php echo htmlspecialchars($buscar); ?>">
                                 <button type="submit" class="btn btn-search">Buscar</button>
                                 <?php if (!empty($buscar)): ?>
-                                <a href="index.php" class="btn btn-back">Limpiar</a>
+                                <a href="?estado=<?php echo urlencode($filtro_estado); ?>" class="btn btn-back">Limpiar</a>
                                 <?php endif; ?>
                             </form>
                             <?php if (in_array($tipo_usuario, ['ADMIN', 'SUPERVISOR', 'VENTAS'])): ?>
@@ -708,11 +777,17 @@ $clientes_lista = $stmt->fetchAll();
                         if (!empty($buscar)) {
                             $url_anterior .= "&buscar=" . urlencode($buscar);
                         }
+                        if ($filtro_estado !== 'TODOS') {
+                            $url_anterior .= "&estado=" . urlencode($filtro_estado);
+                        }
 
                         // URL para navegación siguiente
                         $url_siguiente = "?pagina=" . ($pagina + 1);
                         if (!empty($buscar)) {
                             $url_siguiente .= "&buscar=" . urlencode($buscar);
+                        }
+                        if ($filtro_estado !== 'TODOS') {
+                            $url_siguiente .= "&estado=" . urlencode($filtro_estado);
                         }
 
                         // Calcular registros mostrados
