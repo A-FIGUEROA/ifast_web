@@ -5,9 +5,10 @@ require_once '../../includes/functions.php';
 /**
  * Genera el contenido HTML del documento de facturación
  * @param array $doc Datos del documento
+ * @param array $guias Guías asociadas (opcional, solo para modo DESDE_GUIA)
  * @return string HTML del documento
  */
-function generarHTMLDocumento($doc) {
+function generarHTMLDocumento($doc, $guias = []) {
     // Convertir logo a base64 para incluirlo en el PDF
     $logo_path = __DIR__ . '/../../assets/logo/logo_fact.png';
     $logo_base64 = '';
@@ -344,8 +345,47 @@ if ($doc['email'] || $doc['celular']) {
 
 $html .= '
             </table>
-        </div>
+        </div>';
 
+// TABLA DE DESGLOSE DE GUÍAS (solo si modo DESDE_GUIA)
+if (!empty($guias)) {
+    $html .= '
+        <!-- DESGLOSE POR GUÍA -->
+        <div style="margin-bottom: 20px;">
+            <div style="background: #00296b; color: white; padding: 6px 12px; margin-bottom: 4px; font-weight: bold; font-size: 9pt;">
+                DESGLOSE POR GUÍA
+            </div>
+            <table style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Consignatario</th>
+                        <th class="center" style="width: 15%;"># Paquetes</th>
+                        <th class="center" style="width: 15%;">Peso (kg)</th>
+                        <th class="center" style="width: 15%;">Peso a Cobrar</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+    foreach ($guias as $guia) {
+        $peso_real = floatval($guia['peso_kg']);
+        $peso_a_cobrar = $peso_real < 1 ? 1.0 : $peso_real;
+
+        $html .= '
+                    <tr>
+                        <td>' . htmlspecialchars($guia['consignatario']) . '</td>
+                        <td class="center">' . intval($guia['pcs']) . '</td>
+                        <td class="center">' . number_format($peso_real, 2) . '</td>
+                        <td class="center">' . number_format($peso_a_cobrar, 2) . '</td>
+                    </tr>';
+    }
+
+    $html .= '
+                </tbody>
+            </table>
+        </div>';
+}
+
+$html .= '
         <!-- TABLA DE SERVICIOS -->
         <table>
             <thead>
@@ -539,8 +579,24 @@ function generarYGuardarPDF($conn, $id_documento, $ruta_destino) {
         return false;
     }
 
+    // Si es modo DESDE_GUIA, obtener las guías asociadas
+    $guias = [];
+    if ($doc['modo_creacion'] === 'DESDE_GUIA' && !empty($doc['guias_asociadas'])) {
+        $guias_ids = explode(',', $doc['guias_asociadas']);
+        $placeholders = implode(',', array_fill(0, count($guias_ids), '?'));
+
+        $stmt_guias = $conn->prepare("
+            SELECT consignatario, pcs, peso_kg
+            FROM guias_masivas
+            WHERE id IN ($placeholders)
+            ORDER BY consignatario ASC
+        ");
+        $stmt_guias->execute($guias_ids);
+        $guias = $stmt_guias->fetchAll();
+    }
+
     // Generar HTML
-    $html = generarHTMLDocumento($doc);
+    $html = generarHTMLDocumento($doc, $guias);
 
     // Crear instancia de mPDF
     $mpdf = new \Mpdf\Mpdf([
