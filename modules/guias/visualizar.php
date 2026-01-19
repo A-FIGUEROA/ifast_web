@@ -345,6 +345,7 @@ if (!$guia) {
                             if ($guia['estado'] === 'ENTREGADO') echo 'badge-success';
                             elseif ($guia['estado'] === 'PENDIENTE') echo 'badge-warning';
                             elseif ($guia['estado'] === 'OBSERVADO') echo 'badge-danger';
+                            elseif ($guia['estado'] === 'LIQUIDADO') echo 'badge-info';
                         ?>">
                             <?php echo $guia['estado']; ?>
                         </span>

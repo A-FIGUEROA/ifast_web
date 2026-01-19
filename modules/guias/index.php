@@ -475,6 +475,13 @@ $guias = $stmt->fetchAll();
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23721c24' d='M6 1L1 11h10L6 1zm0 3l.5 3h-1L6 4zm0 5a.75.75 0 100 1.5.75.75 0 000-1.5z'/%3E%3C/svg%3E");
         }
 
+        .estado-liquidado {
+            background-color: #e8daef;
+            color: #5b2c6f;
+            border-color: #8e44ad;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235b2c6f' d='M6 2L2 6h3v4h2V6h3z'/%3E%3C/svg%3E");
+        }
+
         .pagination {
             display: flex;
             justify-content: center;
@@ -662,6 +669,7 @@ $guias = $stmt->fetchAll();
                         <option value="ENTREGADO" <?php echo $filtro_estado === 'ENTREGADO' ? 'selected' : ''; ?>>Entregado</option>
                         <option value="PENDIENTE" <?php echo $filtro_estado === 'PENDIENTE' ? 'selected' : ''; ?>>Pendiente</option>
                         <option value="OBSERVADO" <?php echo $filtro_estado === 'OBSERVADO' ? 'selected' : ''; ?>>Observado</option>
+                        <option value="LIQUIDADO" <?php echo $filtro_estado === 'LIQUIDADO' ? 'selected' : ''; ?>>Liquidado</option>
                     </select>
                     <input
                         type="date"
@@ -726,6 +734,7 @@ $guias = $stmt->fetchAll();
                                             if ($guia['estado'] === 'ENTREGADO') echo 'estado-entregado';
                                             elseif ($guia['estado'] === 'PENDIENTE') echo 'estado-pendiente';
                                             elseif ($guia['estado'] === 'OBSERVADO') echo 'estado-observado';
+                                            elseif ($guia['estado'] === 'LIQUIDADO') echo 'estado-liquidado';
                                         ?>"
                                         data-id="<?php echo $guia['id']; ?>"
                                         onchange="cambiarEstado(this)"
@@ -733,6 +742,7 @@ $guias = $stmt->fetchAll();
                                         <option value="ENTREGADO" <?php echo $guia['estado'] === 'ENTREGADO' ? 'selected' : ''; ?>>Entregado</option>
                                         <option value="PENDIENTE" <?php echo $guia['estado'] === 'PENDIENTE' ? 'selected' : ''; ?>>Pendiente</option>
                                         <option value="OBSERVADO" <?php echo $guia['estado'] === 'OBSERVADO' ? 'selected' : ''; ?>>Observado</option>
+                                        <option value="LIQUIDADO" <?php echo $guia['estado'] === 'LIQUIDADO' ? 'selected' : ''; ?>>Liquidado</option>
                                     </select>
                                 </td>
                                 <td>

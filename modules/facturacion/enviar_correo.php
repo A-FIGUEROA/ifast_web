@@ -32,7 +32,7 @@ try {
         exit;
     }
 
-    // Obtener datos del documento
+    // Obtener datos del documento (incluyendo guias_asociadas y modo_creacion)
     $stmt = $conn->prepare("SELECT df.*, c.nombre_razon_social, c.apellido, c.email
                            FROM documentos_facturacion df
                            INNER JOIN clientes c ON df.cliente_id = c.id
@@ -149,6 +149,19 @@ try {
         $stmt_update->bindParam(':correos', $correos_destino);
         $stmt_update->bindParam(':id_documento', $id_documento);
         $stmt_update->execute();
+
+        // NUEVO: Actualizar guías asociadas a LIQUIDADO
+        if (!empty($doc['guias_asociadas']) && $doc['modo_creacion'] === 'DESDE_GUIA') {
+            $guias_ids = explode(',', $doc['guias_asociadas']);
+            $placeholders = implode(',', array_fill(0, count($guias_ids), '?'));
+
+            $stmt_guias = $conn->prepare("
+                UPDATE guias_masivas
+                SET estado = 'LIQUIDADO'
+                WHERE id IN ($placeholders)
+            ");
+            $stmt_guias->execute($guias_ids);
+        }
 
         $conn->commit();
 
