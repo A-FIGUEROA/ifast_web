@@ -150,14 +150,14 @@ try {
         $stmt_update->bindParam(':id_documento', $id_documento);
         $stmt_update->execute();
 
-        // NUEVO: Actualizar guías asociadas a LIQUIDADO
+        // Actualizar estado_facturacion de guías asociadas a LIQUIDADO
         if (!empty($doc['guias_asociadas']) && $doc['modo_creacion'] === 'DESDE_GUIA') {
             $guias_ids = explode(',', $doc['guias_asociadas']);
             $placeholders = implode(',', array_fill(0, count($guias_ids), '?'));
 
             $stmt_guias = $conn->prepare("
                 UPDATE guias_masivas
-                SET estado = 'LIQUIDADO'
+                SET estado_facturacion = 'LIQUIDADO'
                 WHERE id IN ($placeholders)
             ");
             $stmt_guias->execute($guias_ids);

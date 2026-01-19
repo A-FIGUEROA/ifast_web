@@ -531,7 +531,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="PENDIENTE" <?php echo $guia['estado'] === 'PENDIENTE' ? 'selected' : ''; ?>>Pendiente</option>
                             <option value="ENTREGADO" <?php echo $guia['estado'] === 'ENTREGADO' ? 'selected' : ''; ?>>Entregado</option>
                             <option value="OBSERVADO" <?php echo $guia['estado'] === 'OBSERVADO' ? 'selected' : ''; ?>>Observado</option>
-                            <option value="LIQUIDADO" <?php echo $guia['estado'] === 'LIQUIDADO' ? 'selected' : ''; ?>>Liquidado</option>
                         </select>
                     </div>
 

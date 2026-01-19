@@ -25,7 +25,7 @@ try {
     }
 
     // Validar que el estado sea válido
-    $estados_validos = ['ENTREGADO', 'PENDIENTE', 'OBSERVADO', 'LIQUIDADO'];
+    $estados_validos = ['ENTREGADO', 'PENDIENTE', 'OBSERVADO'];
     if (!in_array($nuevo_estado, $estados_validos)) {
         throw new Exception('Estado no válido');
     }

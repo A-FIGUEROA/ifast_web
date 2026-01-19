@@ -345,10 +345,24 @@ if (!$guia) {
                             if ($guia['estado'] === 'ENTREGADO') echo 'badge-success';
                             elseif ($guia['estado'] === 'PENDIENTE') echo 'badge-warning';
                             elseif ($guia['estado'] === 'OBSERVADO') echo 'badge-danger';
-                            elseif ($guia['estado'] === 'LIQUIDADO') echo 'badge-info';
                         ?>">
                             <?php echo $guia['estado']; ?>
                         </span>
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">Estado de Facturación:</div>
+                    <div class="detail-value">
+                        <?php if ($guia['estado_facturacion'] === 'LIQUIDADO'): ?>
+                            <span class="badge" style="background: #e8daef; color: #5b2c6f; border: 2px solid #8e44ad;">
+                                💰 LIQUIDADO
+                            </span>
+                        <?php else: ?>
+                            <span class="badge badge-warning" style="opacity: 0.6;">
+                                PENDIENTE
+                            </span>
+                        <?php endif; ?>
                     </div>
                 </div>
 

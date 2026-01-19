@@ -534,7 +534,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="PENDIENTE" <?php echo (!isset($_POST['estado']) || $_POST['estado'] === 'PENDIENTE') ? 'selected' : ''; ?>>Pendiente</option>
                             <option value="ENTREGADO" <?php echo (isset($_POST['estado']) && $_POST['estado'] === 'ENTREGADO') ? 'selected' : ''; ?>>Entregado</option>
                             <option value="OBSERVADO" <?php echo (isset($_POST['estado']) && $_POST['estado'] === 'OBSERVADO') ? 'selected' : ''; ?>>Observado</option>
-                            <option value="LIQUIDADO" <?php echo (isset($_POST['estado']) && $_POST['estado'] === 'LIQUIDADO') ? 'selected' : ''; ?>>Liquidado</option>
                         </select>
                     </div>
 
