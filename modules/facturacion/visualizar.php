@@ -29,6 +29,22 @@ if (!$doc) {
     die("Documento no encontrado");
 }
 
+// Si es modo DESDE_GUIA, obtener las guías asociadas
+$guias = [];
+if ($doc['modo_creacion'] === 'DESDE_GUIA' && !empty($doc['guias_asociadas'])) {
+    $guias_ids = explode(',', $doc['guias_asociadas']);
+    $placeholders = implode(',', array_fill(0, count($guias_ids), '?'));
+
+    $stmt_guias = $conn->prepare("
+        SELECT consignatario, pcs, peso_kg
+        FROM guias_masivas
+        WHERE id IN ($placeholders)
+        ORDER BY consignatario ASC
+    ");
+    $stmt_guias->execute($guias_ids);
+    $guias = $stmt_guias->fetchAll();
+}
+
 $tipo_usuario = obtenerTipoUsuario();
 ?>
 <!DOCTYPE html>
@@ -381,6 +397,37 @@ $tipo_usuario = obtenerTipoUsuario();
                 <?php endif; ?>
             </div>
         </div>
+
+        <?php if (!empty($guias)): ?>
+        <!-- DESGLOSE POR GUÍA -->
+        <div style="margin-bottom: 20px;">
+            <div class="empresa-section">DESGLOSE POR GUÍA</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Consignatario</th>
+                        <th class="center" style="width: 15%;"># Paquetes</th>
+                        <th class="center" style="width: 15%;">Peso (kg)</th>
+                        <th class="center" style="width: 15%;">Peso a Cobrar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($guias as $guia): ?>
+                    <?php
+                        $peso_real = floatval($guia['peso_kg']);
+                        $peso_a_cobrar = $peso_real < 1 ? 1.0 : $peso_real;
+                    ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($guia['consignatario']); ?></td>
+                        <td class="center"><?php echo intval($guia['pcs']); ?></td>
+                        <td class="center"><?php echo number_format($peso_real, 2); ?></td>
+                        <td class="center"><?php echo number_format($peso_a_cobrar, 2); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
 
         <!-- TABLA DE SERVICIOS -->
         <table>
