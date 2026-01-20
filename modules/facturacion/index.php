@@ -28,7 +28,11 @@ $query_count = "SELECT COUNT(*) as total
 
 $query_select = "SELECT df.*, df.imagen_adjunta,
                         c.nombre_razon_social, c.apellido, c.documento, c.email,
-                        u.nombre as usuario_nombre, u.apellido as usuario_apellido
+                        u.nombre as usuario_nombre, u.apellido as usuario_apellido,
+                        (SELECT GROUP_CONCAT(gm.nro_guia ORDER BY gm.nro_guia SEPARATOR ', ')
+                         FROM guias_masivas gm
+                         WHERE FIND_IN_SET(gm.id, df.guias_asociadas) > 0
+                        ) as numeros_guias
                  FROM documentos_facturacion df
                  INNER JOIN clientes c ON df.cliente_id = c.id
                  LEFT JOIN usuarios u ON df.creado_por = u.id
@@ -39,12 +43,27 @@ $params = [];
 // Aplicar búsqueda
 if (!empty($buscar)) {
     $buscar_like = "%$buscar%";
-    $query_count .= " AND (df.numero_documento LIKE ? OR c.nombre_razon_social LIKE ? OR c.documento LIKE ?)";
-    $query_select .= " AND (df.numero_documento LIKE ? OR c.nombre_razon_social LIKE ? OR c.documento LIKE ?)";
-    // Agregar el mismo valor 3 veces (una por cada campo de búsqueda)
-    $params[] = $buscar_like;
-    $params[] = $buscar_like;
-    $params[] = $buscar_like;
+    $query_count .= " AND (df.numero_documento LIKE ?
+                      OR c.nombre_razon_social LIKE ?
+                      OR c.documento LIKE ?
+                      OR EXISTS (
+                          SELECT 1 FROM guias_masivas gm
+                          WHERE FIND_IN_SET(gm.id, df.guias_asociadas) > 0
+                          AND gm.nro_guia LIKE ?
+                      ))";
+    $query_select .= " AND (df.numero_documento LIKE ?
+                       OR c.nombre_razon_social LIKE ?
+                       OR c.documento LIKE ?
+                       OR EXISTS (
+                           SELECT 1 FROM guias_masivas gm
+                           WHERE FIND_IN_SET(gm.id, df.guias_asociadas) > 0
+                           AND gm.nro_guia LIKE ?
+                       ))";
+    // Agregar el mismo valor 4 veces (una por cada campo de búsqueda)
+    $params[] = $buscar_like; // numero_documento
+    $params[] = $buscar_like; // nombre_razon_social
+    $params[] = $buscar_like; // documento cliente
+    $params[] = $buscar_like; // nro_guia (NUEVO)
 }
 
 // Aplicar filtro por tipo
@@ -407,7 +426,7 @@ $tipo_usuario = obtenerTipoUsuario();
                         <form method="GET" class="search-container">
                             <input type="hidden" name="tipo" value="<?php echo htmlspecialchars($tipo_filtro); ?>">
                             <input type="text" name="buscar" class="search-box"
-                                   placeholder="🔍 Buscar por número, cliente..."
+                                   placeholder="🔍 Buscar por número, cliente, N° guía..."
                                    value="<?php echo htmlspecialchars($buscar); ?>">
                             <button type="submit" class="btn-search">Buscar</button>
                             <?php if (!empty($buscar) || !empty($tipo_filtro)): ?>
@@ -452,6 +471,7 @@ $tipo_usuario = obtenerTipoUsuario();
                                 <th>Tipo</th>
                                 <th>N° Documento</th>
                                 <th>Cliente</th>
+                                <th>Guías Asociadas</th>
                                 <th>Total</th>
                                 <th>Archivo PDF</th>
                                 <th>Fecha</th>
@@ -474,6 +494,18 @@ $tipo_usuario = obtenerTipoUsuario();
                                     if ($doc['apellido']) echo ' ' . $doc['apellido'];
                                     ?>
                                     <br><small style="color: #999;"><?php echo $doc['documento']; ?></small>
+                                </td>
+                                <td>
+                                    <?php if (!empty($doc['numeros_guias'])): ?>
+                                        <div style="font-size: 0.85rem; color: #00509d; font-weight: 600;">
+                                            📦 <?php echo htmlspecialchars($doc['numeros_guias']); ?>
+                                        </div>
+                                        <small style="color: #27ae60;">
+                                            (<?php echo count(explode(',', $doc['guias_asociadas'])); ?> guías)
+                                        </small>
+                                    <?php else: ?>
+                                        <span style="color: #95a5a6; font-size: 0.85rem;">-</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td><strong>$<?php echo number_format($doc['total'], 2); ?></strong></td>
                                 <td>
