@@ -20,6 +20,9 @@ $buscar = isset($_GET['buscar']) ? limpiarDatos($_GET['buscar']) : '';
 // Filtro de estado
 $filtro_estado = isset($_GET['estado']) ? limpiarDatos($_GET['estado']) : '';
 
+// Filtro de estado de facturación (TODOS por defecto)
+$filtro_facturacion = isset($_GET['estado_facturacion']) ? limpiarDatos($_GET['estado_facturacion']) : 'TODOS';
+
 // Filtro de fechas
 $fecha_desde = isset($_GET['fecha_desde']) ? limpiarDatos($_GET['fecha_desde']) : '';
 $fecha_hasta = isset($_GET['fecha_hasta']) ? limpiarDatos($_GET['fecha_hasta']) : '';
@@ -50,6 +53,16 @@ if (!empty($buscar)) {
 if (!empty($filtro_estado)) {
     $conditions[] = "gm.estado = :estado";
     $params[':estado'] = $filtro_estado;
+}
+
+// Si hay filtro de estado de facturación
+if ($filtro_facturacion !== 'TODOS') {
+    if ($filtro_facturacion === 'LIQUIDADO') {
+        $conditions[] = "gm.estado_facturacion = 'LIQUIDADO'";
+    } else {
+        // PENDIENTE: NULL o vacío
+        $conditions[] = "(gm.estado_facturacion IS NULL OR gm.estado_facturacion = '' OR gm.estado_facturacion = 'PENDIENTE')";
+    }
 }
 
 // Si hay filtro de fecha desde
@@ -207,6 +220,38 @@ $guias = $stmt->fetchAll();
 
         .content {
             padding: 30px;
+        }
+
+        /* FILTER TABS */
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #7f8c8d;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .filter-tab:hover {
+            background: #d5dbdb;
+            color: #2c3e50;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #00296b 0%, #00509d 100%);
+            color: white;
         }
 
         .card {
@@ -625,6 +670,31 @@ $guias = $stmt->fetchAll();
                 </div>
             <?php endif; ?>
 
+            <!-- FILTER TABS -->
+            <div class="filter-tabs">
+                <?php
+                // Construir URL base manteniendo búsqueda y otros filtros
+                $base_params = [];
+                if (!empty($buscar)) $base_params[] = "buscar=" . urlencode($buscar);
+                if (!empty($filtro_estado)) $base_params[] = "estado=" . urlencode($filtro_estado);
+                if (!empty($fecha_desde)) $base_params[] = "fecha_desde=" . urlencode($fecha_desde);
+                if (!empty($fecha_hasta)) $base_params[] = "fecha_hasta=" . urlencode($fecha_hasta);
+                $base_url = !empty($base_params) ? '&' . implode('&', $base_params) : '';
+                ?>
+                <a href="?estado_facturacion=TODOS<?php echo $base_url; ?>"
+                   class="filter-tab <?php echo $filtro_facturacion === 'TODOS' ? 'active' : ''; ?>">
+                    📊 Todos
+                </a>
+                <a href="?estado_facturacion=PENDIENTE<?php echo $base_url; ?>"
+                   class="filter-tab <?php echo $filtro_facturacion === 'PENDIENTE' ? 'active' : ''; ?>">
+                    ⏳ Pendientes Facturación
+                </a>
+                <a href="?estado_facturacion=LIQUIDADO<?php echo $base_url; ?>"
+                   class="filter-tab <?php echo $filtro_facturacion === 'LIQUIDADO' ? 'active' : ''; ?>">
+                    💰 Liquidados
+                </a>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title">
@@ -646,6 +716,7 @@ $guias = $stmt->fetchAll();
                 </div>
 
                 <form method="GET" class="search-filter-bar">
+                    <input type="hidden" name="estado_facturacion" value="<?php echo htmlspecialchars($filtro_facturacion); ?>">
                     <div class="search-box">
                         <input
                             type="text"
@@ -683,7 +754,7 @@ $guias = $stmt->fetchAll();
                         <i class='bx bx-filter'></i> Filtrar
                     </button>
                     <?php if (!empty($buscar) || !empty($filtro_estado) || !empty($fecha_desde) || !empty($fecha_hasta)): ?>
-                    <a href="index.php" class="btn btn-secondary btn-sm" title="Limpiar filtros">
+                    <a href="index.php<?php echo $filtro_facturacion !== 'TODOS' ? '?estado_facturacion=' . urlencode($filtro_facturacion) : ''; ?>" class="btn btn-secondary btn-sm" title="Limpiar filtros">
                         <i class='bx bx-x'></i> Limpiar
                     </a>
                     <?php endif; ?>
@@ -778,6 +849,7 @@ $guias = $stmt->fetchAll();
                         $url_params = [];
                         if (!empty($buscar)) $url_params[] = "buscar=" . urlencode($buscar);
                         if (!empty($filtro_estado)) $url_params[] = "estado=" . urlencode($filtro_estado);
+                        if ($filtro_facturacion !== 'TODOS') $url_params[] = "estado_facturacion=" . urlencode($filtro_facturacion);
                         if (!empty($fecha_desde)) $url_params[] = "fecha_desde=" . urlencode($fecha_desde);
                         if (!empty($fecha_hasta)) $url_params[] = "fecha_hasta=" . urlencode($fecha_hasta);
                         $url_query = count($url_params) > 0 ? '&' . implode('&', $url_params) : '';
