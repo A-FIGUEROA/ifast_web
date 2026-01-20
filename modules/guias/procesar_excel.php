@@ -235,9 +235,11 @@ try {
 
         $conn->beginTransaction();
 
-        // Ordenar las guías por número correlativo antes de insertar
+        // Ordenar las guías por últimos 7 dígitos (correlativo) DESCENDENTE antes de insertar
         usort($datos_validos, function($a, $b) {
-            return strcmp($a['nro_guia'], $b['nro_guia']);
+            $num_a = (int)substr($a['nro_guia'], -7);
+            $num_b = (int)substr($b['nro_guia'], -7);
+            return $num_b - $num_a; // DESC: mayor primero
         });
 
         $stmt = $conn->prepare("
