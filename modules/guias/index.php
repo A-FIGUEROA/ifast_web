@@ -23,9 +23,21 @@ $filtro_estado = isset($_GET['estado']) ? limpiarDatos($_GET['estado']) : '';
 // Filtro de estado de facturación (TODOS por defecto)
 $filtro_facturacion = isset($_GET['estado_facturacion']) ? limpiarDatos($_GET['estado_facturacion']) : 'TODOS';
 
+// Filtro de asesor
+$filtro_asesor = isset($_GET['asesor']) ? limpiarDatos($_GET['asesor']) : '';
+
 // Filtro de fechas
 $fecha_desde = isset($_GET['fecha_desde']) ? limpiarDatos($_GET['fecha_desde']) : '';
 $fecha_hasta = isset($_GET['fecha_hasta']) ? limpiarDatos($_GET['fecha_hasta']) : '';
+
+// Obtener lista de asesores únicos para el filtro
+$stmt_asesores = $conn->query("
+    SELECT DISTINCT asesor
+    FROM guias_masivas
+    WHERE asesor IS NOT NULL AND asesor != ''
+    ORDER BY asesor ASC
+");
+$asesores = $stmt_asesores->fetchAll(PDO::FETCH_COLUMN);
 
 // Query base con alias
 $query_count = "
@@ -44,9 +56,11 @@ $params = [];
 
 // Si hay búsqueda
 if (!empty($buscar)) {
-    $conditions[] = "(gm.nro_guia LIKE :buscar1 OR gm.consignatario LIKE :buscar2)";
+    $conditions[] = "(gm.nro_guia LIKE :buscar1 OR gm.consignatario LIKE :buscar2 OR gm.cliente LIKE :buscar3 OR gm.asesor LIKE :buscar4)";
     $params[':buscar1'] = "%{$buscar}%";
     $params[':buscar2'] = "%{$buscar}%";
+    $params[':buscar3'] = "%{$buscar}%";
+    $params[':buscar4'] = "%{$buscar}%";
 }
 
 // Si hay filtro de estado
@@ -63,6 +77,12 @@ if ($filtro_facturacion !== 'TODOS') {
         // PENDIENTE: NULL o vacío
         $conditions[] = "(gm.estado_facturacion IS NULL OR gm.estado_facturacion = '' OR gm.estado_facturacion = 'PENDIENTE')";
     }
+}
+
+// Si hay filtro de asesor
+if (!empty($filtro_asesor)) {
+    $conditions[] = "gm.asesor = :asesor";
+    $params[':asesor'] = $filtro_asesor;
 }
 
 // Si hay filtro de fecha desde
@@ -677,6 +697,7 @@ $guias = $stmt->fetchAll();
                 $base_params = [];
                 if (!empty($buscar)) $base_params[] = "buscar=" . urlencode($buscar);
                 if (!empty($filtro_estado)) $base_params[] = "estado=" . urlencode($filtro_estado);
+                if (!empty($filtro_asesor)) $base_params[] = "asesor=" . urlencode($filtro_asesor);
                 if (!empty($fecha_desde)) $base_params[] = "fecha_desde=" . urlencode($fecha_desde);
                 if (!empty($fecha_hasta)) $base_params[] = "fecha_hasta=" . urlencode($fecha_hasta);
                 $base_url = !empty($base_params) ? '&' . implode('&', $base_params) : '';
@@ -721,7 +742,7 @@ $guias = $stmt->fetchAll();
                         <input
                             type="text"
                             name="buscar"
-                            placeholder="Buscar por N° Guía o Consignatario..."
+                            placeholder="Buscar por N° Guía, Cliente, Consignatario o Asesor..."
                             value="<?php echo htmlspecialchars($buscar); ?>"
                         >
                         <button type="submit">
@@ -733,6 +754,14 @@ $guias = $stmt->fetchAll();
                         <option value="ENTREGADO" <?php echo $filtro_estado === 'ENTREGADO' ? 'selected' : ''; ?>>Entregado</option>
                         <option value="PENDIENTE" <?php echo $filtro_estado === 'PENDIENTE' ? 'selected' : ''; ?>>Pendiente</option>
                         <option value="OBSERVADO" <?php echo $filtro_estado === 'OBSERVADO' ? 'selected' : ''; ?>>Observado</option>
+                    </select>
+                    <select name="asesor" class="filter-select">
+                        <option value="">Todos los asesores</option>
+                        <?php foreach ($asesores as $asesor): ?>
+                        <option value="<?php echo htmlspecialchars($asesor); ?>" <?php echo $filtro_asesor === $asesor ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($asesor); ?>
+                        </option>
+                        <?php endforeach; ?>
                     </select>
                     <input
                         type="date"
@@ -753,8 +782,12 @@ $guias = $stmt->fetchAll();
                     <button type="submit" class="btn btn-secondary btn-sm">
                         <i class='bx bx-filter'></i> Filtrar
                     </button>
-                    <?php if (!empty($buscar) || !empty($filtro_estado) || !empty($fecha_desde) || !empty($fecha_hasta)): ?>
-                    <a href="index.php<?php echo $filtro_facturacion !== 'TODOS' ? '?estado_facturacion=' . urlencode($filtro_facturacion) : ''; ?>" class="btn btn-secondary btn-sm" title="Limpiar filtros">
+                    <?php if (!empty($buscar) || !empty($filtro_estado) || !empty($filtro_asesor) || !empty($fecha_desde) || !empty($fecha_hasta)): ?>
+                    <a href="index.php<?php
+                        $preserve_params = [];
+                        if ($filtro_facturacion !== 'TODOS') $preserve_params[] = 'estado_facturacion=' . urlencode($filtro_facturacion);
+                        echo !empty($preserve_params) ? '?' . implode('&', $preserve_params) : '';
+                    ?>" class="btn btn-secondary btn-sm" title="Limpiar filtros">
                         <i class='bx bx-x'></i> Limpiar
                     </a>
                     <?php endif; ?>
@@ -850,6 +883,7 @@ $guias = $stmt->fetchAll();
                         if (!empty($buscar)) $url_params[] = "buscar=" . urlencode($buscar);
                         if (!empty($filtro_estado)) $url_params[] = "estado=" . urlencode($filtro_estado);
                         if ($filtro_facturacion !== 'TODOS') $url_params[] = "estado_facturacion=" . urlencode($filtro_facturacion);
+                        if (!empty($filtro_asesor)) $url_params[] = "asesor=" . urlencode($filtro_asesor);
                         if (!empty($fecha_desde)) $url_params[] = "fecha_desde=" . urlencode($fecha_desde);
                         if (!empty($fecha_hasta)) $url_params[] = "fecha_hasta=" . urlencode($fecha_hasta);
                         $url_query = count($url_params) > 0 ? '&' . implode('&', $url_params) : '';
