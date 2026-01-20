@@ -235,6 +235,11 @@ try {
 
         $conn->beginTransaction();
 
+        // Ordenar las guías por número correlativo antes de insertar
+        usort($datos_validos, function($a, $b) {
+            return strcmp($a['nro_guia'], $b['nro_guia']);
+        });
+
         $stmt = $conn->prepare("
             INSERT INTO guias_masivas
             (nro_guia, consignatario, cliente, documento_cliente, descripcion, pcs, peso_kg, valor_fob_usd, fecha_embarque, asesor, estado, cliente_id, metodo_ingreso, nombre_archivo_origen, creado_por)

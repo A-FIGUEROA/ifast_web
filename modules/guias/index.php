@@ -104,7 +104,7 @@ if (count($conditions) > 0) {
     $query_select .= $where;
 }
 
-$query_select .= " ORDER BY gm.fecha_creacion DESC LIMIT :limit OFFSET :offset";
+$query_select .= " ORDER BY gm.nro_guia ASC LIMIT :limit OFFSET :offset";
 
 // Total de guías
 $stmt = $conn->prepare($query_count);
