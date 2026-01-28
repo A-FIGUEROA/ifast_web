@@ -153,7 +153,65 @@ function mostrarAlerta($tipo, $mensaje) {
 
 // Función para obtener estadísticas del dashboard
 function obtenerEstadisticas($conn, $tipo_usuario = null) {
-    $stats = [];
+    // Inicializar stats con valores por defecto
+    $stats = [
+        'total_usuarios' => 0,
+        'total_clientes' => 0,
+        'total_pedidos' => 0,
+        'total_archivos' => 0,
+        'pedidos_recientes' => [],
+        'clientes_hoy' => 0,
+        'clientes_ayer' => 0,
+        'clientes_ultimos_7_dias' => 0,
+        'clientes_ultimos_30_dias' => 0,
+        'pedidos_hoy' => 0,
+        'pedidos_ayer' => 0,
+        'pedidos_ultimos_7_dias' => 0,
+        'pedidos_ultimos_30_dias' => 0,
+        'embarques_hoy' => 0,
+        'embarques_ayer' => 0,
+        'embarques_ultimos_7_dias' => 0,
+        'embarques_ultimos_30_dias' => 0,
+        'total_facturacion_hoy' => 0,
+        'total_facturacion_ayer' => 0,
+        'guias_pendientes' => 0,
+        'guias_entregadas' => 0,
+        'guias_observadas' => 0,
+        'total_guias' => 0,
+        'top_clientes_pedidos' => [],
+        'top_clientes_facturacion' => [],
+        'tendencia_clientes' => [],
+        'tendencia_pedidos' => [],
+        'tendencia_embarques' => [],
+        'tendencia_facturacion' => [],
+        'embarques_recientes' => [],
+        'documentos_recientes' => [],
+        'clientes_recientes' => [],
+        'total_embarques' => 0,
+        'total_documentos_facturacion' => 0,
+        'usuarios_activos' => 0,
+        // Facturación por tipo y periodo
+        'facturas_hoy' => 0,
+        'boletas_hoy' => 0,
+        'recibos_hoy' => 0,
+        'monto_facturas_hoy' => 0,
+        'monto_boletas_hoy' => 0,
+        'monto_recibos_hoy' => 0,
+        'facturas_ultimos_7_dias' => 0,
+        'boletas_ultimos_7_dias' => 0,
+        'recibos_ultimos_7_dias' => 0,
+        'monto_facturas_ultimos_7_dias' => 0,
+        'monto_boletas_ultimos_7_dias' => 0,
+        'monto_recibos_ultimos_7_dias' => 0,
+        'total_facturacion_ultimos_7_dias' => 0,
+        'facturas_ultimos_30_dias' => 0,
+        'boletas_ultimos_30_dias' => 0,
+        'recibos_ultimos_30_dias' => 0,
+        'monto_facturas_ultimos_30_dias' => 0,
+        'monto_boletas_ultimos_30_dias' => 0,
+        'monto_recibos_ultimos_30_dias' => 0,
+        'total_facturacion_ultimos_30_dias' => 0
+    ];
 
     try {
         // ========================================
@@ -234,19 +292,19 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
 
             // ===== EMBARQUES/GUÍAS =====
             // Embarques hoy
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE DATE(creado_en) = CURDATE()");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE DATE(creado_en) = CURDATE()");
             $stats['embarques_hoy'] = $stmt->fetch()['total'];
 
             // Embarques últimos 7 días
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
             $stats['embarques_ultimos_7_dias'] = $stmt->fetch()['total'];
 
             // Embarques últimos 30 días
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
             $stats['embarques_ultimos_30_dias'] = $stmt->fetch()['total'];
 
             // Embarques ayer
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
             $stats['embarques_ayer'] = $stmt->fetch()['total'];
 
             // ===== FACTURACIÓN =====
@@ -431,7 +489,7 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
                     DATE_FORMAT(creado_en, '%Y-%m') as mes,
                     DATE_FORMAT(creado_en, '%b') as mes_nombre,
                     COUNT(*) as total
-                FROM guias_embarque
+                FROM guias_masivas
                 WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
                 GROUP BY mes, mes_nombre
                 ORDER BY mes ASC
@@ -495,7 +553,7 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             $stats['clientes_recientes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // ===== TOTALES ACUMULADOS =====
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas");
             $stats['total_embarques'] = $stmt->fetch()['total'];
 
             $stmt = $conn->query("SELECT COUNT(*) as total FROM documentos_facturacion");
