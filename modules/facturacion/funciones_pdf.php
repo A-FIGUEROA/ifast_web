@@ -67,32 +67,30 @@ function generarHTMLDocumento($doc, $guias = []) {
             margin-bottom: 8px;
             padding-bottom: 6px;
             border-bottom: 3px solid #00296b;
+            overflow: hidden;
         }
 
         .header-content {
             width: 100%;
-            display: table;
+            overflow: hidden;
         }
 
         .header-logo {
-            display: table-cell;
-            width: 35%;
-            vertical-align: middle;
-            text-align: left;
+            float: left;
+            width: 40%;
         }
 
         .header-logo img {
             max-width: 140px;
             height: auto;
             display: block;
+            margin-top: 10px;
         }
 
         .header-info {
-            display: table-cell;
-            width: 65%;
-            vertical-align: middle;
+            float: right;
+            width: 60%;
             text-align: right;
-            padding-left: 20px;
         }
 
         .factura-info {
@@ -102,6 +100,7 @@ function generarHTMLDocumento($doc, $guias = []) {
             background: white;
             display: inline-block;
             width: 180px;
+            margin-top: 5px;
         }
 
         .factura-info h1 {
