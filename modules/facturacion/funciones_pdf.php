@@ -59,68 +59,72 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         .factura-container {
-            padding: 20px;
+            padding: 15px;
         }
 
-        .header-table {
+        .header-section {
             width: 100%;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
             border-bottom: 3px solid #00296b;
-            border-collapse: collapse;
         }
 
-        .header-table td {
+        .header-content {
+            width: 100%;
+            display: table;
+        }
+
+        .header-logo {
+            display: table-cell;
+            width: 35%;
             vertical-align: middle;
-            border: none;
-            padding: 0;
+            text-align: left;
         }
 
-        .header-table td.logo-cell {
-            width: 200px;
-            text-align: center;
-            padding-right: 15px;
-        }
-
-        .header-table td.logo-cell img {
-            max-width: 180px;
+        .header-logo img {
+            max-width: 140px;
             height: auto;
+            display: block;
         }
 
-        .header-table td.info-cell {
+        .header-info {
+            display: table-cell;
+            width: 65%;
+            vertical-align: middle;
             text-align: right;
+            padding-left: 20px;
         }
 
         .factura-info {
             border: 2px solid #00296b;
-            padding: 10px 12px;
+            padding: 8px 10px;
             text-align: center;
             background: white;
             display: inline-block;
-            min-width: 200px;
+            width: 180px;
         }
 
         .factura-info h1 {
             color: #00296b;
-            font-size: 12pt;
-            margin: 0 0 6px 0;
+            font-size: 11pt;
+            margin: 0 0 5px 0;
             font-weight: bold;
         }
 
         .factura-info .numero {
-            font-size: 10pt;
+            font-size: 9.5pt;
             font-weight: bold;
             color: #00509d;
-            margin: 0 0 6px 0;
+            margin: 0 0 5px 0;
         }
 
         .factura-info .ruc {
-            font-size: 7.5pt;
-            margin: 0 0 4px 0;
+            font-size: 7pt;
+            margin: 0 0 3px 0;
         }
 
         .factura-info .fecha {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #666;
             margin: 0;
         }
@@ -128,34 +132,34 @@ function generarHTMLDocumento($doc, $guias = []) {
         .empresa-section {
             background: #00296b;
             color: white;
-            padding: 5px 10px;
-            margin-bottom: 3px;
+            padding: 4px 8px;
+            margin-bottom: 2px;
             font-weight: bold;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
 
         .empresa-datos {
             background: #f8f9fa;
-            padding: 7px 10px;
-            margin-bottom: 12px;
-            font-size: 8.5pt;
-            line-height: 1.5;
+            padding: 5px 8px;
+            margin-bottom: 8px;
+            font-size: 8pt;
+            line-height: 1.4;
         }
 
         .cliente-section {
             background: #00296b;
             color: white;
-            padding: 5px 10px;
-            margin-bottom: 3px;
+            padding: 4px 8px;
+            margin-bottom: 2px;
             font-weight: bold;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
 
         .cliente-datos {
             background: #f8f9fa;
-            padding: 7px 10px;
-            margin-bottom: 12px;
-            font-size: 8.5pt;
+            padding: 5px 8px;
+            margin-bottom: 8px;
+            font-size: 8pt;
         }
 
         .cliente-grid {
@@ -178,7 +182,7 @@ function generarHTMLDocumento($doc, $guias = []) {
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 12px 0;
+            margin: 8px 0;
         }
 
         thead {
@@ -187,9 +191,9 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         th {
-            padding: 8px 6px;
+            padding: 6px 5px;
             text-align: left;
-            font-size: 8.5pt;
+            font-size: 8pt;
             font-weight: 600;
         }
 
@@ -202,11 +206,11 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         td {
-            padding: 7px 6px;
+            padding: 5px 5px;
             border-bottom: 1px solid #e0e0e0;
-            font-size: 8.5pt;
+            font-size: 8pt;
             vertical-align: top;
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         td.center {
@@ -218,46 +222,46 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         td small {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #666;
             display: block;
-            margin-top: 3px;
-            line-height: 1.3;
+            margin-top: 2px;
+            line-height: 1.2;
         }
 
         .observaciones {
-            margin: 12px 0;
+            margin: 8px 0;
         }
 
         .observaciones-title {
             background: #00296b;
             color: white;
-            padding: 5px 10px;
+            padding: 4px 8px;
             font-weight: bold;
-            font-size: 8.5pt;
-            margin-bottom: 3px;
+            font-size: 8pt;
+            margin-bottom: 2px;
         }
 
         .observaciones-content {
             background: #f8f9fa;
-            padding: 7px 10px;
-            min-height: 40px;
-            font-size: 8.5pt;
-            line-height: 1.5;
+            padding: 5px 8px;
+            min-height: 30px;
+            font-size: 8pt;
+            line-height: 1.4;
         }
 
         .totales-section {
             float: right;
-            width: 250px;
-            margin-top: 15px;
+            width: 220px;
+            margin-top: 10px;
         }
 
         .total-row {
             display: table;
             width: 100%;
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-bottom: 1px solid #e0e0e0;
-            font-size: 9pt;
+            font-size: 8.5pt;
         }
 
         .total-row span:first-child {
@@ -278,43 +282,43 @@ function generarHTMLDocumento($doc, $guias = []) {
             background: #00296b;
             color: white;
             font-weight: bold;
-            font-size: 11pt;
+            font-size: 10pt;
             border: none;
         }
 
         .footer-text {
             clear: both;
-            margin-top: 50px;
-            padding-top: 12px;
+            margin-top: 30px;
+            padding-top: 8px;
             border-top: 2px solid #e0e0e0;
             text-align: center;
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #666;
-            line-height: 1.6;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
     <div class="factura-container">
         <!-- HEADER -->
-        <table class="header-table">
-            <tr>
-                <td class="logo-cell">';
+        <div class="header-section">
+            <div class="header-content">
+                <div class="header-logo">';
                     if (!empty($logo_base64)) {
                         $html .= '<img src="' . $logo_base64 . '" alt="Logo IFAST">';
                     }
                 $html .= '
-                </td>
-                <td class="info-cell">
+                </div>
+                <div class="header-info">
                     <div class="factura-info">
                         <h1>' . htmlspecialchars($doc['tipo_documento']) . '</h1>
                         <div class="numero">' . htmlspecialchars($doc['numero_documento']) . '</div>
                         <div class="ruc">RUC: 20611227982</div>
                         <div class="fecha">Fecha: ' . formatearFecha($doc['creado_en'], 'd/m/Y') . '</div>
                     </div>
-                </td>
-            </tr>
-        </table>
+                </div>
+            </div>
+        </div>
 
         <!-- DATOS DE LA EMPRESA -->
         <div class="empresa-section">DATOS DEL EMISOR</div>
