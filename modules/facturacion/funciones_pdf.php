@@ -59,13 +59,13 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         .factura-container {
-            padding: 15px;
+            padding: 20px;
         }
 
         .header-table {
             width: 100%;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 3px solid #00296b;
             border-collapse: collapse;
         }
@@ -77,13 +77,13 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         .header-table td.logo-cell {
-            width: 280px;
+            width: 200px;
             text-align: center;
             padding-right: 15px;
         }
 
         .header-table td.logo-cell img {
-            max-width: 250px;
+            max-width: 180px;
             height: auto;
         }
 
@@ -93,34 +93,34 @@ function generarHTMLDocumento($doc, $guias = []) {
 
         .factura-info {
             border: 2px solid #00296b;
-            padding: 12px 15px;
+            padding: 10px 12px;
             text-align: center;
             background: white;
             display: inline-block;
-            min-width: 230px;
+            min-width: 200px;
         }
 
         .factura-info h1 {
             color: #00296b;
-            font-size: 13pt;
-            margin: 0 0 8px 0;
+            font-size: 12pt;
+            margin: 0 0 6px 0;
             font-weight: bold;
         }
 
         .factura-info .numero {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
             color: #00509d;
-            margin: 0 0 8px 0;
+            margin: 0 0 6px 0;
         }
 
         .factura-info .ruc {
-            font-size: 8pt;
-            margin: 0 0 5px 0;
+            font-size: 7.5pt;
+            margin: 0 0 4px 0;
         }
 
         .factura-info .fecha {
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #666;
             margin: 0;
         }
@@ -128,34 +128,34 @@ function generarHTMLDocumento($doc, $guias = []) {
         .empresa-section {
             background: #00296b;
             color: white;
-            padding: 6px 12px;
-            margin-bottom: 4px;
+            padding: 5px 10px;
+            margin-bottom: 3px;
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 8.5pt;
         }
 
         .empresa-datos {
             background: #f8f9fa;
-            padding: 8px 12px;
-            margin-bottom: 15px;
-            font-size: 9pt;
+            padding: 7px 10px;
+            margin-bottom: 12px;
+            font-size: 8.5pt;
             line-height: 1.5;
         }
 
         .cliente-section {
             background: #00296b;
             color: white;
-            padding: 6px 12px;
-            margin-bottom: 4px;
+            padding: 5px 10px;
+            margin-bottom: 3px;
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 8.5pt;
         }
 
         .cliente-datos {
             background: #f8f9fa;
-            padding: 8px 12px;
-            margin-bottom: 15px;
-            font-size: 9pt;
+            padding: 7px 10px;
+            margin-bottom: 12px;
+            font-size: 8.5pt;
         }
 
         .cliente-grid {
@@ -178,7 +178,7 @@ function generarHTMLDocumento($doc, $guias = []) {
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 12px 0;
         }
 
         thead {
@@ -187,9 +187,9 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         th {
-            padding: 10px 6px;
+            padding: 8px 6px;
             text-align: left;
-            font-size: 9pt;
+            font-size: 8.5pt;
             font-weight: 600;
         }
 
@@ -202,9 +202,11 @@ function generarHTMLDocumento($doc, $guias = []) {
         }
 
         td {
-            padding: 8px 6px;
+            padding: 7px 6px;
             border-bottom: 1px solid #e0e0e0;
-            font-size: 9pt;
+            font-size: 8.5pt;
+            vertical-align: top;
+            line-height: 1.4;
         }
 
         td.center {
@@ -215,24 +217,33 @@ function generarHTMLDocumento($doc, $guias = []) {
             text-align: right;
         }
 
+        td small {
+            font-size: 7.5pt;
+            color: #666;
+            display: block;
+            margin-top: 3px;
+            line-height: 1.3;
+        }
+
         .observaciones {
-            margin: 15px 0;
+            margin: 12px 0;
         }
 
         .observaciones-title {
             background: #00296b;
             color: white;
-            padding: 6px 12px;
+            padding: 5px 10px;
             font-weight: bold;
-            font-size: 9pt;
-            margin-bottom: 4px;
+            font-size: 8.5pt;
+            margin-bottom: 3px;
         }
 
         .observaciones-content {
             background: #f8f9fa;
-            padding: 8px 12px;
-            min-height: 50px;
-            font-size: 9pt;
+            padding: 7px 10px;
+            min-height: 40px;
+            font-size: 8.5pt;
+            line-height: 1.5;
         }
 
         .totales-section {
@@ -273,11 +284,11 @@ function generarHTMLDocumento($doc, $guias = []) {
 
         .footer-text {
             clear: both;
-            margin-top: 60px;
-            padding-top: 15px;
+            margin-top: 50px;
+            padding-top: 12px;
             border-top: 2px solid #e0e0e0;
             text-align: center;
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #666;
             line-height: 1.6;
         }
@@ -497,9 +508,9 @@ if ($doc['gastos_adicionales'] > 0) {
                 <tr>
                     <td class="center">-</td>
                     <td>
-                        Gastos Adicionales';
+                        <strong>Gastos Adicionales</strong>';
                         if ($doc['detalle_gastos_adicionales']) {
-                            $html .= '<br><small style="color: #666;">(' . htmlspecialchars($doc['detalle_gastos_adicionales']) . ')</small>';
+                            $html .= '<small>' . htmlspecialchars($doc['detalle_gastos_adicionales']) . '</small>';
                         }
     $html .= '
                     </td>
@@ -515,7 +526,7 @@ if ($doc['descuento'] > 0) {
                     <td>
                         <strong style="color: #c0392b;">Descuento</strong>';
                         if ($doc['detalle_descuento']) {
-                            $html .= '<br><small style="color: #666;">(' . htmlspecialchars($doc['detalle_descuento']) . ')</small>';
+                            $html .= '<small style="color: #666;">' . htmlspecialchars($doc['detalle_descuento']) . '</small>';
                         }
     $html .= '
                     </td>

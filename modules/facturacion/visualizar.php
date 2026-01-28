@@ -45,6 +45,30 @@ if ($doc['modo_creacion'] === 'DESDE_GUIA' && !empty($doc['guias_asociadas'])) {
     $guias = $stmt_guias->fetchAll();
 }
 
+// Determinar tarifas aplicadas
+$tarifa_aplicada = $doc['tarifa_aplicada'] ?? 'TARIFA_1';
+$tarifa_peso = 10.00;
+$tarifa_desaduanaje = 5.00;
+$nombre_tarifa = 'Tarifa 1';
+
+switch ($tarifa_aplicada) {
+    case 'TARIFA_1':
+        $tarifa_peso = 10.00;
+        $tarifa_desaduanaje = 5.00;
+        $nombre_tarifa = 'Tarifa 1';
+        break;
+    case 'TARIFA_2':
+        $tarifa_peso = 9.50;
+        $tarifa_desaduanaje = 5.00;
+        $nombre_tarifa = 'Tarifa 2';
+        break;
+    case 'TARIFA_3':
+        $tarifa_peso = 9.90;
+        $tarifa_desaduanaje = 0.00;
+        $nombre_tarifa = 'Tarifa 3 (Flat)';
+        break;
+}
+
 $tipo_usuario = obtenerTipoUsuario();
 ?>
 <!DOCTYPE html>
@@ -443,8 +467,8 @@ $tipo_usuario = obtenerTipoUsuario();
                 <?php if ($doc['peso_total'] > 0): ?>
                 <tr>
                     <td class="center"><?php echo number_format($doc['peso_total'], 3); ?> kg</td>
-                    <td>Servicio de Envío por Peso</td>
-                    <td class="right">$10.00</td>
+                    <td>Servicio de Envío por Peso (<?php echo $nombre_tarifa; ?>)</td>
+                    <td class="right">$<?php echo number_format($tarifa_peso, 2); ?></td>
                     <td class="right">$<?php echo number_format($doc['costo_peso'], 2); ?></td>
                 </tr>
                 <?php endif; ?>
@@ -462,7 +486,7 @@ $tipo_usuario = obtenerTipoUsuario();
                 <tr>
                     <td class="center"><?php echo $doc['total_guias']; ?></td>
                     <td>Servicio de Desaduanaje</td>
-                    <td class="right">$5.00</td>
+                    <td class="right">$<?php echo number_format($tarifa_desaduanaje, 2); ?></td>
                     <td class="right">$<?php echo number_format($doc['costo_desaduanaje'], 2); ?></td>
                 </tr>
                 <?php endif; ?>
@@ -537,6 +561,9 @@ $tipo_usuario = obtenerTipoUsuario();
         <div class="observaciones">
             <div class="observaciones-title">OBSERVACIONES</div>
             <div class="observaciones-content">
+                <strong>Tarifa Aplicada:</strong> <?php echo $nombre_tarifa; ?>
+                ($<?php echo number_format($tarifa_peso, 2); ?>/kg<?php if ($tarifa_desaduanaje > 0): ?> + $<?php echo number_format($tarifa_desaduanaje, 2); ?> Desaduanaje<?php else: ?> - Sin cargo por Desaduanaje<?php endif; ?>)
+                <br>
                 <?php if ($doc['canal_aduanas']): ?>
                 <strong>Canal de Aduanas:</strong>
                 <?php
