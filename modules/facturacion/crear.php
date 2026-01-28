@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tipo_documento = $_POST['tipo_documento'];
     $cliente_id = (int)$_POST['cliente_id'];
     $modo_creacion = $_POST['modo_creacion'] ?? 'MANUAL';
+    $tarifa_aplicada = $_POST['tarifa_aplicada'] ?? 'TARIFA_1';
 
     // Guías asociadas (solo si es modo DESDE_GUIA)
     $guias_asociadas = '';
@@ -94,18 +95,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Generar número de documento
             $numero_documento = obtenerSiguienteNumero($conn, $tipo_documento);
 
+            // Definir tarifas según selección
+            $tarifa_peso = 10.00;
+            $tarifa_desaduanaje = 5.00;
+
+            switch ($tarifa_aplicada) {
+                case 'TARIFA_1':
+                    $tarifa_peso = 10.00;
+                    $tarifa_desaduanaje = 5.00;
+                    break;
+                case 'TARIFA_2':
+                    $tarifa_peso = 9.50;
+                    $tarifa_desaduanaje = 5.00;
+                    break;
+                case 'TARIFA_3':
+                    $tarifa_peso = 9.90;
+                    $tarifa_desaduanaje = 0.00;
+                    break;
+                default:
+                    $tarifa_peso = 10.00;
+                    $tarifa_desaduanaje = 5.00;
+            }
+
             // Calcular costos
             // 1. Costo por peso
             if ($modo_creacion === 'DESDE_GUIA' && $peso_ajustado_calculado > 0) {
                 // Modo DESDE_GUIA: usar peso ajustado directamente (ya se ajustó en frontend)
-                $costo_peso = $peso_ajustado_calculado * 10.00;
+                $costo_peso = $peso_ajustado_calculado * $tarifa_peso;
             } else {
-                // Modo MANUAL: aplicar regla de peso mínimo (< 1kg = $10, >= 1kg = peso x $10)
-                $costo_peso = ($peso_total < 1) ? 10.00 : ($peso_total * 10.00);
+                // Modo MANUAL: aplicar regla de peso mínimo (< 1kg = tarifa mínima, >= 1kg = peso x tarifa)
+                $costo_peso = ($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso);
             }
 
-            // 2. Desaduanaje ($5 x guía)
-            $costo_desaduanaje = $total_guias * 5.00;
+            // 2. Desaduanaje (tarifa variable según selección)
+            $costo_desaduanaje = $total_guias * $tarifa_desaduanaje;
 
             // 3. Cambio de consignatario ($3 x cantidad)
             $costo_cambio_consignatario = $cantidad_cambio_consignatario * 3.00;
@@ -214,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             gastos_adicionales, detalle_gastos_adicionales,
                             descuento, detalle_descuento,
                             canal_aduanas,
-                            guias_asociadas, modo_creacion,
+                            guias_asociadas, modo_creacion, tarifa_aplicada,
                             subtotal, igv, total,
                             nombre_archivo, ruta_archivo,
                             imagen_adjunta,
@@ -230,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             :gastos_adicionales, :detalle_gastos_adicionales,
                             :descuento, :detalle_descuento,
                             :canal_aduanas,
-                            :guias_asociadas, :modo_creacion,
+                            :guias_asociadas, :modo_creacion, :tarifa_aplicada,
                             :subtotal, :igv, :total,
                             :nombre_archivo, :ruta_archivo,
                             :imagen_adjunta,
@@ -260,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':canal_aduanas', $canal_aduanas);
                 $stmt->bindParam(':guias_asociadas', $guias_asociadas);
                 $stmt->bindParam(':modo_creacion', $modo_creacion);
+                $stmt->bindParam(':tarifa_aplicada', $tarifa_aplicada);
                 $stmt->bindParam(':subtotal', $subtotal);
                 $stmt->bindParam(':igv', $igv);
                 $stmt->bindParam(':total', $total);
@@ -564,6 +588,34 @@ $tipo_usuario = obtenerTipoUsuario();
                         <small class="info-text">Selecciona "Desde Guías" para crear factura automáticamente desde guías existentes</small>
                     </div>
 
+                    <div class="section-title">💵 Seleccionar Tarifa a Aplicar</div>
+                    <div class="form-group">
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; transition: all 0.3s;">
+                                <input type="radio" name="tarifa_aplicada" value="TARIFA_1" id="tarifa_1" checked style="width: 20px; height: 20px;">
+                                <div>
+                                    <span style="font-weight: 600; color: #00296b;">TARIFA 1:</span>
+                                    <span style="color: #555;"> $10.00/kg + $5.00 Desaduanaje por guía</span>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; transition: all 0.3s;">
+                                <input type="radio" name="tarifa_aplicada" value="TARIFA_2" id="tarifa_2" style="width: 20px; height: 20px;">
+                                <div>
+                                    <span style="font-weight: 600; color: #00296b;">TARIFA 2:</span>
+                                    <span style="color: #555;"> $9.50/kg + $5.00 Desaduanaje por guía</span>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; transition: all 0.3s;">
+                                <input type="radio" name="tarifa_aplicada" value="TARIFA_3" id="tarifa_3" style="width: 20px; height: 20px;">
+                                <div>
+                                    <span style="font-weight: 600; color: #00296b;">TARIFA 3:</span>
+                                    <span style="color: #555;"> $9.90/kg (Sin Desaduanaje)</span>
+                                </div>
+                            </label>
+                        </div>
+                        <small class="info-text">La tarifa seleccionada afectará el cálculo del costo por peso y desaduanaje</small>
+                    </div>
+
                     <div class="section-title">👤 Datos del Cliente</div>
                     <div class="form-group">
                         <label>Cliente <span class="required">*</span></label>
@@ -766,21 +818,43 @@ $tipo_usuario = obtenerTipoUsuario();
         function calcularTotales() {
             const tipoDoc = document.getElementById('tipo_documento').value;
 
+            // Obtener tarifa seleccionada
+            const tarifaSeleccionada = document.querySelector('input[name="tarifa_aplicada"]:checked').value;
+
+            // Definir tarifas según selección
+            let tarifaPeso = 10.00;
+            let tarifaDesaduanaje = 5.00;
+
+            switch (tarifaSeleccionada) {
+                case 'TARIFA_1':
+                    tarifaPeso = 10.00;
+                    tarifaDesaduanaje = 5.00;
+                    break;
+                case 'TARIFA_2':
+                    tarifaPeso = 9.50;
+                    tarifaDesaduanaje = 5.00;
+                    break;
+                case 'TARIFA_3':
+                    tarifaPeso = 9.90;
+                    tarifaDesaduanaje = 0.00;
+                    break;
+            }
+
             // 1. Costo por peso
             const peso = parseFloat(document.getElementById('peso_total').value) || 0;
             let costoPeso;
 
             if (modoActual === 'DESDE_GUIA' && pesoAjustadoGuias > 0) {
                 // Modo DESDE_GUIA: usar peso ajustado directamente
-                costoPeso = pesoAjustadoGuias * 10.00;
+                costoPeso = pesoAjustadoGuias * tarifaPeso;
             } else {
                 // Modo MANUAL: aplicar regla de peso mínimo
-                costoPeso = peso < 1 ? 10.00 : (peso * 10.00);
+                costoPeso = peso < 1 ? tarifaPeso : (peso * tarifaPeso);
             }
 
-            // 2. Desaduanaje
+            // 2. Desaduanaje (tarifa variable)
             const totalGuias = parseInt(document.getElementById('total_guias').value) || 0;
-            const costoDesaduanaje = totalGuias * 5.00;
+            const costoDesaduanaje = totalGuias * tarifaDesaduanaje;
 
             // 3. Cambio consignatario
             const cantidadCambio = parseInt(document.getElementById('cantidad_cambio_consignatario').value) || 0;
@@ -1098,6 +1172,11 @@ $tipo_usuario = obtenerTipoUsuario();
         document.getElementById('envio_provincia_check').addEventListener('change', calcularTotales);
         document.getElementById('gastos_adicionales').addEventListener('input', calcularTotales);
         document.getElementById('descuento').addEventListener('input', calcularTotales);
+
+        // Event listeners para cambio de tarifa
+        document.getElementById('tarifa_1').addEventListener('change', calcularTotales);
+        document.getElementById('tarifa_2').addEventListener('change', calcularTotales);
+        document.getElementById('tarifa_3').addEventListener('change', calcularTotales);
 
         // Cuando se selecciona un cliente, cargar pedidos pendientes y/o guías
         document.getElementById('cliente_id').addEventListener('change', function() {

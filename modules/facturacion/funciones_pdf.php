@@ -9,6 +9,30 @@ require_once '../../includes/functions.php';
  * @return string HTML del documento
  */
 function generarHTMLDocumento($doc, $guias = []) {
+    // Determinar tarifas aplicadas
+    $tarifa_aplicada = $doc['tarifa_aplicada'] ?? 'TARIFA_1';
+    $tarifa_peso = 10.00;
+    $tarifa_desaduanaje = 5.00;
+    $nombre_tarifa = 'Tarifa 1';
+
+    switch ($tarifa_aplicada) {
+        case 'TARIFA_1':
+            $tarifa_peso = 10.00;
+            $tarifa_desaduanaje = 5.00;
+            $nombre_tarifa = 'Tarifa 1';
+            break;
+        case 'TARIFA_2':
+            $tarifa_peso = 9.50;
+            $tarifa_desaduanaje = 5.00;
+            $nombre_tarifa = 'Tarifa 2';
+            break;
+        case 'TARIFA_3':
+            $tarifa_peso = 9.90;
+            $tarifa_desaduanaje = 0.00;
+            $nombre_tarifa = 'Tarifa 3 (Flat)';
+            break;
+    }
+
     // Convertir logo a base64 para incluirlo en el PDF
     $logo_path = __DIR__ . '/../../assets/logo/logo_fact.png';
     $logo_base64 = '';
@@ -402,8 +426,8 @@ if ($doc['peso_total'] > 0) {
     $html .= '
                 <tr>
                     <td class="center">' . number_format($doc['peso_total'], 3) . ' kg</td>
-                    <td>Servicio de Envío por Peso</td>
-                    <td class="right">$10.00</td>
+                    <td>Servicio de Envío por Peso (' . $nombre_tarifa . ')</td>
+                    <td class="right">$' . number_format($tarifa_peso, 2) . '</td>
                     <td class="right">$' . number_format($doc['costo_peso'], 2) . '</td>
                 </tr>';
 }
@@ -423,7 +447,7 @@ if ($doc['total_guias'] > 0) {
                 <tr>
                     <td class="center">' . $doc['total_guias'] . '</td>
                     <td>Servicio de Desaduanaje</td>
-                    <td class="right">$5.00</td>
+                    <td class="right">$' . number_format($tarifa_desaduanaje, 2) . '</td>
                     <td class="right">$' . number_format($doc['costo_desaduanaje'], 2) . '</td>
                 </tr>';
 }
@@ -508,6 +532,16 @@ $html .= '
         <div class="observaciones">
             <div class="observaciones-title">OBSERVACIONES</div>
             <div class="observaciones-content">';
+                // Mostrar tarifa aplicada
+                $html .= '<strong>Tarifa Aplicada:</strong> ' . $nombre_tarifa;
+                $html .= ' ($' . number_format($tarifa_peso, 2) . '/kg';
+                if ($tarifa_desaduanaje > 0) {
+                    $html .= ' + $' . number_format($tarifa_desaduanaje, 2) . ' Desaduanaje';
+                } else {
+                    $html .= ' - Sin cargo por Desaduanaje';
+                }
+                $html .= ')<br>';
+
                 if ($doc['canal_aduanas']) {
                     $html .= '<strong>Canal de Aduanas:</strong> ';
                     if ($doc['canal_aduanas'] === 'VERDE') $html .= 'CANAL VERDE';
