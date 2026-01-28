@@ -77,7 +77,7 @@ function generarHTMLDocumento($doc, $guias = []) {
 
         .header-logo {
             float: left;
-            width: 40%;
+            width: 30%;
         }
 
         .header-logo img {
@@ -89,7 +89,7 @@ function generarHTMLDocumento($doc, $guias = []) {
 
         .header-info {
             float: right;
-            width: 60%;
+            width: 45%;
             text-align: right;
         }
 
