@@ -346,6 +346,163 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             // Facturación ayer (para comparación)
             $stmt = $conn->query("SELECT COALESCE(SUM(total), 0) as total FROM documentos_facturacion WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
             $stats['total_facturacion_ayer'] = $stmt->fetch()['total'];
+
+            // ===== ESTADOS DE GUÍAS/EMBARQUES =====
+            // Guías por estado
+            $stmt = $conn->query("SELECT estado, COUNT(*) as total FROM guias_masivas GROUP BY estado");
+            $guias_estado = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stats['guias_pendientes'] = 0;
+            $stats['guias_entregadas'] = 0;
+            $stats['guias_observadas'] = 0;
+            foreach ($guias_estado as $guia) {
+                if ($guia['estado'] == 'PENDIENTE') {
+                    $stats['guias_pendientes'] = $guia['total'];
+                } elseif ($guia['estado'] == 'ENTREGADO') {
+                    $stats['guias_entregadas'] = $guia['total'];
+                } elseif ($guia['estado'] == 'OBSERVADO') {
+                    $stats['guias_observadas'] = $guia['total'];
+                }
+            }
+            $stats['total_guias'] = $stats['guias_pendientes'] + $stats['guias_entregadas'] + $stats['guias_observadas'];
+
+            // ===== TOP 10 CLIENTES CON MÁS PEDIDOS =====
+            $stmt = $conn->query("
+                SELECT
+                    c.id,
+                    c.nombre_razon_social,
+                    c.apellido,
+                    COUNT(rp.id) as total_pedidos
+                FROM clientes c
+                LEFT JOIN recibos_pedidos rp ON c.id = rp.cliente_id
+                GROUP BY c.id, c.nombre_razon_social, c.apellido
+                HAVING total_pedidos > 0
+                ORDER BY total_pedidos DESC
+                LIMIT 10
+            ");
+            $stats['top_clientes_pedidos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // ===== TOP 10 CLIENTES CON MAYOR FACTURACIÓN =====
+            $stmt = $conn->query("
+                SELECT
+                    c.id,
+                    c.nombre_razon_social,
+                    c.apellido,
+                    COALESCE(SUM(df.total), 0) as total_facturado,
+                    COUNT(df.id) as total_documentos
+                FROM clientes c
+                LEFT JOIN documentos_facturacion df ON c.id = df.cliente_id
+                GROUP BY c.id, c.nombre_razon_social, c.apellido
+                HAVING total_facturado > 0
+                ORDER BY total_facturado DESC
+                LIMIT 10
+            ");
+            $stats['top_clientes_facturacion'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // ===== TENDENCIA MENSUAL (ÚLTIMOS 6 MESES) =====
+            // Clientes por mes
+            $stmt = $conn->query("
+                SELECT
+                    DATE_FORMAT(creado_en, '%Y-%m') as mes,
+                    DATE_FORMAT(creado_en, '%b') as mes_nombre,
+                    COUNT(*) as total
+                FROM clientes
+                WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY mes, mes_nombre
+                ORDER BY mes ASC
+            ");
+            $stats['tendencia_clientes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Pedidos por mes
+            $stmt = $conn->query("
+                SELECT
+                    DATE_FORMAT(subido_en, '%Y-%m') as mes,
+                    DATE_FORMAT(subido_en, '%b') as mes_nombre,
+                    COUNT(*) as total
+                FROM recibos_pedidos
+                WHERE subido_en >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY mes, mes_nombre
+                ORDER BY mes ASC
+            ");
+            $stats['tendencia_pedidos'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Embarques por mes
+            $stmt = $conn->query("
+                SELECT
+                    DATE_FORMAT(creado_en, '%Y-%m') as mes,
+                    DATE_FORMAT(creado_en, '%b') as mes_nombre,
+                    COUNT(*) as total
+                FROM guias_embarque
+                WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY mes, mes_nombre
+                ORDER BY mes ASC
+            ");
+            $stats['tendencia_embarques'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Facturación por mes
+            $stmt = $conn->query("
+                SELECT
+                    DATE_FORMAT(creado_en, '%Y-%m') as mes,
+                    DATE_FORMAT(creado_en, '%b') as mes_nombre,
+                    COALESCE(SUM(total), 0) as total
+                FROM documentos_facturacion
+                WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                GROUP BY mes, mes_nombre
+                ORDER BY mes ASC
+            ");
+            $stats['tendencia_facturacion'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // ===== EMBARQUES/GUÍAS RECIENTES =====
+            $stmt = $conn->query("
+                SELECT
+                    gm.*,
+                    c.nombre_razon_social,
+                    c.apellido
+                FROM guias_masivas gm
+                LEFT JOIN clientes c ON gm.cliente_id = c.id
+                ORDER BY gm.creado_en DESC
+                LIMIT 5
+            ");
+            $stats['embarques_recientes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // ===== DOCUMENTOS DE FACTURACIÓN RECIENTES =====
+            $stmt = $conn->query("
+                SELECT
+                    df.*,
+                    c.nombre_razon_social,
+                    c.apellido
+                FROM documentos_facturacion df
+                LEFT JOIN clientes c ON df.cliente_id = c.id
+                ORDER BY df.creado_en DESC
+                LIMIT 5
+            ");
+            $stats['documentos_recientes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // ===== CLIENTES REGISTRADOS RECIENTEMENTE =====
+            $stmt = $conn->query("
+                SELECT
+                    id,
+                    nombre_razon_social,
+                    apellido,
+                    email,
+                    telefono,
+                    tipo_documento,
+                    numero_documento,
+                    creado_en
+                FROM clientes
+                ORDER BY creado_en DESC
+                LIMIT 5
+            ");
+            $stats['clientes_recientes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // ===== TOTALES ACUMULADOS =====
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_embarque");
+            $stats['total_embarques'] = $stmt->fetch()['total'];
+
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM documentos_facturacion");
+            $stats['total_documentos_facturacion'] = $stmt->fetch()['total'];
+
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM usuarios WHERE activo = 1");
+            $stats['usuarios_activos'] = $stmt->fetch()['total'];
         }
 
     } catch(PDOException $e) {
