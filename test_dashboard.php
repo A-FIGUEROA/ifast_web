@@ -36,9 +36,9 @@ echo "<pre>";
 echo json_encode($facturacion_por_usuario, JSON_PRETTY_PRINT);
 echo "</pre>";
 
-// Verificar usuarios activos
-echo "<h2>Usuarios Activos:</h2>";
-$stmt = $conn->query("SELECT id, nombre, apellido, tipo, activo FROM usuarios");
+// Verificar usuarios
+echo "<h2>Usuarios:</h2>";
+$stmt = $conn->query("SELECT id, nombre, apellido, tipo FROM usuarios");
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 echo "<pre>";
 print_r($usuarios);

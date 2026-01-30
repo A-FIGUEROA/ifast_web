@@ -543,7 +543,7 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             $stmt = $conn->query("SELECT COUNT(*) as total FROM documentos_facturacion");
             $stats['total_documentos_facturacion'] = $stmt->fetch()['total'];
 
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM usuarios WHERE activo = 1");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM usuarios");
             $stats['usuarios_activos'] = $stmt->fetch()['total'];
         }
 
@@ -583,7 +583,6 @@ function obtenerEstadisticasEmbarquesPorUsuario($conn) {
                 COUNT(gm.id) as total
             FROM usuarios u
             LEFT JOIN guias_masivas gm ON u.id = gm.creado_por
-            WHERE u.activo = 1
             GROUP BY u.id, u.nombre, u.apellido, u.tipo
             ORDER BY mes DESC
         ");
@@ -616,7 +615,6 @@ function obtenerEstadisticasFacturacionPorUsuario($conn) {
                 COUNT(CASE WHEN df.tipo_documento = 'RECIBO' THEN 1 END) as total_recibos
             FROM usuarios u
             LEFT JOIN documentos_facturacion df ON u.id = df.creado_por
-            WHERE u.activo = 1
             GROUP BY u.id, u.nombre, u.apellido, u.tipo
             ORDER BY mes DESC
         ");
