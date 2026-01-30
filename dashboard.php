@@ -502,7 +502,18 @@ if ($tipo_usuario === 'ADMIN') {
         const embarquesPorUsuario = <?php echo json_encode($embarques_por_usuario); ?>;
         const facturacionPorUsuario = <?php echo json_encode($facturacion_por_usuario); ?>;
 
-        const nombresUsuarios = embarquesPorUsuario.map(e => e.nombre_completo);
+        console.log('Embarques por usuario:', embarquesPorUsuario);
+        console.log('Facturación por usuario:', facturacionPorUsuario);
+
+        // Verificar si hay datos
+        if (!embarquesPorUsuario || embarquesPorUsuario.length === 0) {
+            console.error('No hay datos de embarques por usuario');
+        }
+        if (!facturacionPorUsuario || facturacionPorUsuario.length === 0) {
+            console.error('No hay datos de facturación por usuario');
+        }
+
+        const nombresUsuarios = embarquesPorUsuario && embarquesPorUsuario.length > 0 ? embarquesPorUsuario.map(e => e.nombre_completo) : [];
         const coloresBarras = [
             'rgba(102, 126, 234, 0.8)',
             'rgba(17, 153, 142, 0.8)',
