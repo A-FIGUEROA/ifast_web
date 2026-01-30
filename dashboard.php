@@ -19,6 +19,17 @@ $nombre_usuario = obtenerNombreUsuario();
 
 // Obtener estad铆sticas (pasando tipo de usuario para estad铆sticas avanzadas)
 $stats = obtenerEstadisticas($conn, $tipo_usuario);
+
+// Obtener estad铆sticas de embarques y facturaci贸n por usuario (solo para ADMIN)
+$embarques_por_usuario = [];
+$facturacion_por_usuario = [];
+$evolucion_facturacion = [];
+
+if ($tipo_usuario === 'ADMIN') {
+    $embarques_por_usuario = obtenerEstadisticasEmbarquesPorUsuario($conn);
+    $facturacion_por_usuario = obtenerEstadisticasFacturacionPorUsuario($conn);
+    $evolucion_facturacion = obtenerEvolucionDiariaFacturacion($conn);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -497,6 +508,190 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                     </div>
                 </div>
 
+                <!-- ===================================== -->
+                <!-- SECCIÓN: EMBARQUES POR USUARIO -->
+                <!-- ===================================== -->
+                <div class="card" style="margin-bottom: 30px;">
+                    <div class="card-header">
+                        <h3>📦 Embarques por Usuario</h3>
+                    </div>
+                    <div class="table-container" style="padding: 10px 0;">
+                        <?php if (!empty($embarques_por_usuario)): ?>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th style="text-align: center;">Hoy</th>
+                                    <th style="text-align: center;">Últimos 7 Días</th>
+                                    <th style="text-align: center;">Últimos 30 Días</th>
+                                    <th style="text-align: center;">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($embarques_por_usuario as $embarque): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($embarque['nombre_completo']); ?></strong></td>
+                                    <td>
+                                        <?php
+                                        $badge_class = 'badge';
+                                        if ($embarque['rol'] == 'ADMIN') {
+                                            $badge_class .= ' badge-danger';
+                                            echo '<span class="' . $badge_class . '" style="background: #667eea; color: white;">' . $embarque['rol'] . '</span>';
+                                        } elseif ($embarque['rol'] == 'SUPERVISOR') {
+                                            echo '<span class="badge" style="background: #11998e; color: white;">' . $embarque['rol'] . '</span>';
+                                        } else {
+                                            echo '<span class="badge" style="background: #f093fb; color: white;">' . $embarque['rol'] . '</span>';
+                                        }
+                                        ?>
+                                    </td>
+                                    <td style="text-align: center;"><strong><?php echo number_format($embarque['hoy']); ?></strong></td>
+                                    <td style="text-align: center;"><?php echo number_format($embarque['semana']); ?></td>
+                                    <td style="text-align: center;"><?php echo number_format($embarque['mes']); ?></td>
+                                    <td style="text-align: center;"><strong style="color: #667eea;"><?php echo number_format($embarque['total']); ?></strong></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8f9fa; font-weight: bold;">
+                                    <td colspan="2">TOTALES</td>
+                                    <td style="text-align: center;">
+                                        <?php echo number_format(array_sum(array_column($embarques_por_usuario, 'hoy'))); ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <?php echo number_format(array_sum(array_column($embarques_por_usuario, 'semana'))); ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <?php echo number_format(array_sum(array_column($embarques_por_usuario, 'mes'))); ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <?php echo number_format(array_sum(array_column($embarques_por_usuario, 'total'))); ?>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <?php else: ?>
+                        <div class="empty-state">
+                            <i>--</i>
+                            <p>No hay datos de embarques disponibles</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Gráfico de Embarques Mensuales por Usuario -->
+                    <?php if (!empty($embarques_por_usuario)): ?>
+                    <div style="padding: 20px; border-top: 2px solid #f5f7fa;">
+                        <h4 style="margin-bottom: 15px; color: #2c3e50; font-size: 1.1rem;">📊 Embarques Mensuales por Usuario</h4>
+                        <canvas id="chartEmbarquesPorUsuario" height="100"></canvas>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- ===================================== -->
+                <!-- SECCIÓN: FACTURACIÓN POR USUARIO -->
+                <!-- ===================================== -->
+                <div class="card" style="margin-bottom: 30px;">
+                    <div class="card-header">
+                        <h3>💰 Facturación por Usuario</h3>
+                    </div>
+                    <div class="table-container" style="padding: 10px 0;">
+                        <?php if (!empty($facturacion_por_usuario)): ?>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th style="text-align: right;">Hoy</th>
+                                    <th style="text-align: right;">Últimos 7 Días</th>
+                                    <th style="text-align: right;">Últimos 30 Días</th>
+                                    <th style="text-align: right;">Total</th>
+                                    <th style="text-align: center;">Docs</th>
+                                    <th style="text-align: center;">Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($facturacion_por_usuario as $factura): ?>
+                                <tr>
+                                    <td><strong><?php echo htmlspecialchars($factura['nombre_completo']); ?></strong></td>
+                                    <td>
+                                        <?php
+                                        if ($factura['rol'] == 'ADMIN') {
+                                            echo '<span class="badge" style="background: #667eea; color: white;">' . $factura['rol'] . '</span>';
+                                        } elseif ($factura['rol'] == 'SUPERVISOR') {
+                                            echo '<span class="badge" style="background: #11998e; color: white;">' . $factura['rol'] . '</span>';
+                                        } else {
+                                            echo '<span class="badge" style="background: #f093fb; color: white;">' . $factura['rol'] . '</span>';
+                                        }
+                                        ?>
+                                    </td>
+                                    <td style="text-align: right;"><strong>$<?php echo number_format($factura['hoy'], 2); ?></strong></td>
+                                    <td style="text-align: right;">$<?php echo number_format($factura['semana'], 2); ?></td>
+                                    <td style="text-align: right;">$<?php echo number_format($factura['mes'], 2); ?></td>
+                                    <td style="text-align: right;"><strong style="color: #11998e;">$<?php echo number_format($factura['total'], 2); ?></strong></td>
+                                    <td style="text-align: center;"><?php echo number_format($factura['cantidad_documentos']); ?></td>
+                                    <td style="text-align: center;">
+                                        <small style="display: block; color: #666;">
+                                            F: <?php echo $factura['total_facturas']; ?> |
+                                            B: <?php echo $factura['total_boletas']; ?> |
+                                            R: <?php echo $factura['total_recibos']; ?>
+                                        </small>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8f9fa; font-weight: bold;">
+                                    <td colspan="2">TOTALES</td>
+                                    <td style="text-align: right;">
+                                        $<?php echo number_format(array_sum(array_column($facturacion_por_usuario, 'hoy')), 2); ?>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        $<?php echo number_format(array_sum(array_column($facturacion_por_usuario, 'semana')), 2); ?>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        $<?php echo number_format(array_sum(array_column($facturacion_por_usuario, 'mes')), 2); ?>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        $<?php echo number_format(array_sum(array_column($facturacion_por_usuario, 'total')), 2); ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <?php echo number_format(array_sum(array_column($facturacion_por_usuario, 'cantidad_documentos'))); ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <small style="display: block; color: #666;">
+                                            F: <?php echo array_sum(array_column($facturacion_por_usuario, 'total_facturas')); ?> |
+                                            B: <?php echo array_sum(array_column($facturacion_por_usuario, 'total_boletas')); ?> |
+                                            R: <?php echo array_sum(array_column($facturacion_por_usuario, 'total_recibos')); ?>
+                                        </small>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <?php else: ?>
+                        <div class="empty-state">
+                            <i>--</i>
+                            <p>No hay datos de facturación disponibles</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Gráfico de Facturación Mensual por Usuario -->
+                    <?php if (!empty($facturacion_por_usuario)): ?>
+                    <div style="padding: 20px; border-top: 2px solid #f5f7fa;">
+                        <h4 style="margin-bottom: 15px; color: #2c3e50; font-size: 1.1rem;">📊 Facturación Mensual por Usuario</h4>
+                        <canvas id="chartFacturacionPorUsuario" height="100"></canvas>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Gráfico de Evolución Diaria de Facturación -->
+                    <?php if (!empty($evolucion_facturacion)): ?>
+                    <div style="padding: 20px; border-top: 2px solid #f5f7fa;">
+                        <h4 style="margin-bottom: 15px; color: #2c3e50; font-size: 1.1rem;">📅 Evolución Diaria de Facturación (Últimos 30 Días)</h4>
+                        <canvas id="chartEvolucionFacturacion" height="100"></canvas>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Tablas de Datos Recientes -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-bottom: 30px;">
 
@@ -777,51 +972,6 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                     </div>
                 </div>
                 <?php endif; ?>
-
-                <!-- RECENT ORDERS -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3> Pedidos Recientes</h3>
-                    </div>
-                    <div class="table-container">
-                        <?php if (!empty($stats['pedidos_recientes'])): ?>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Tracking</th>
-                                    <th>Cliente</th>
-                                    <th>Archivo</th>
-                                    <th>Fecha</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($stats['pedidos_recientes'] as $pedido): ?>
-                                <tr>
-                                    <td><strong><?php echo $pedido['tracking_pedido']; ?></strong></td>
-                                    <td>
-                                        <?php 
-                                        echo $pedido['nombre_razon_social'];
-                                        if ($pedido['apellido']) {
-                                            echo ' ' . $pedido['apellido'];
-                                        }
-                                        ?>
-                                    </td>
-                                    <td><?php echo $pedido['nombre_archivo']; ?></td>
-                                    <td><?php echo formatearFecha($pedido['subido_en']); ?></td>
-                                    <td><span class="badge badge-success">Activo</span></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                        <?php else: ?>
-                        <div class="empty-state">
-                            <i>--</i>
-                            <p>No hay pedidos registrados aunn</p>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
             </div>
         </main>
     </div>
@@ -1270,6 +1420,167 @@ $stats = obtenerEstadisticas($conn, $tipo_usuario);
                             beginAtZero: true,
                             ticks: {
                                 precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========================================
+        // GRÁFICO 8: EMBARQUES MENSUALES POR USUARIO (Barras Horizontales)
+        // ========================================
+        const ctxEmbarquesPorUsuario = document.getElementById('chartEmbarquesPorUsuario');
+        if (ctxEmbarquesPorUsuario) {
+            const embarquesPorUsuario = <?php echo json_encode($embarques_por_usuario); ?>;
+            const nombresUsuarios = embarquesPorUsuario.map(e => e.nombre_completo);
+            const embarquesMes = embarquesPorUsuario.map(e => parseInt(e.mes));
+
+            new Chart(ctxEmbarquesPorUsuario, {
+                type: 'bar',
+                data: {
+                    labels: nombresUsuarios,
+                    datasets: [{
+                        label: 'Embarques (Últimos 30 Días)',
+                        data: embarquesMes,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Embarques: ' + context.parsed.x;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========================================
+        // GRÁFICO 9: FACTURACIÓN MENSUAL POR USUARIO (Barras Horizontales)
+        // ========================================
+        const ctxFacturacionPorUsuario = document.getElementById('chartFacturacionPorUsuario');
+        if (ctxFacturacionPorUsuario) {
+            const facturacionPorUsuario = <?php echo json_encode($facturacion_por_usuario); ?>;
+            const nombresUsuariosFacturacion = facturacionPorUsuario.map(f => f.nombre_completo);
+            const facturacionMes = facturacionPorUsuario.map(f => parseFloat(f.mes));
+
+            new Chart(ctxFacturacionPorUsuario, {
+                type: 'bar',
+                data: {
+                    labels: nombresUsuariosFacturacion,
+                    datasets: [{
+                        label: 'Facturación (Últimos 30 Días)',
+                        data: facturacionMes,
+                        backgroundColor: 'rgba(17, 153, 142, 0.8)',
+                        borderColor: 'rgba(17, 153, 142, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Facturado: $' + context.parsed.x.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========================================
+        // GRÁFICO 10: EVOLUCIÓN DIARIA DE FACTURACIÓN (Líneas)
+        // ========================================
+        const ctxEvolucionFacturacion = document.getElementById('chartEvolucionFacturacion');
+        if (ctxEvolucionFacturacion) {
+            const evolucionFacturacion = <?php echo json_encode($evolucion_facturacion); ?>;
+            const fechas = evolucionFacturacion.map(e => e.fecha_formato);
+            const montos = evolucionFacturacion.map(e => parseFloat(e.monto_total));
+
+            new Chart(ctxEvolucionFacturacion, {
+                type: 'line',
+                data: {
+                    labels: fechas,
+                    datasets: [{
+                        label: 'Facturación Diaria',
+                        data: montos,
+                        borderColor: 'rgba(79, 172, 254, 1)',
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: 'rgba(79, 172, 254, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Facturado: $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
                             }
                         }
                     }

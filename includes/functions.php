@@ -159,7 +159,6 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
         'total_clientes' => 0,
         'total_pedidos' => 0,
         'total_archivos' => 0,
-        'pedidos_recientes' => [],
         'clientes_hoy' => 0,
         'clientes_ayer' => 0,
         'clientes_ultimos_7_dias' => 0,
@@ -234,21 +233,6 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
         $stmt = $conn->query("SELECT COUNT(*) as total FROM archivos_clientes");
         $stats['total_archivos'] = $stmt->fetch()['total'];
 
-        // Pedidos recientes
-        $stmt = $conn->query("
-            SELECT
-                rp.*,
-                c.nombre_razon_social,
-                c.apellido,
-                GROUP_CONCAT(pt.tracking_code SEPARATOR ', ') as tracking_pedido
-            FROM recibos_pedidos rp
-            INNER JOIN clientes c ON rp.cliente_id = c.id
-            LEFT JOIN pedidos_trackings pt ON rp.id = pt.recibo_pedido_id
-            GROUP BY rp.id
-            ORDER BY rp.subido_en DESC
-            LIMIT 5
-        ");
-        $stats['pedidos_recientes'] = $stmt->fetchAll();
 
         // ========================================
         // ESTADÍSTICAS AVANZADAS SOLO PARA ADMIN
@@ -574,12 +558,99 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
 function paginar($total_registros, $registros_por_pagina, $pagina_actual) {
     $total_paginas = ceil($total_registros / $registros_por_pagina);
     $offset = ($pagina_actual - 1) * $registros_por_pagina;
-    
+
     return [
         'total_paginas' => $total_paginas,
         'offset' => $offset,
         'pagina_actual' => $pagina_actual,
         'registros_por_pagina' => $registros_por_pagina
     ];
+}
+
+// Función para obtener estadísticas de embarques por usuario
+function obtenerEstadisticasEmbarquesPorUsuario($conn) {
+    $estadisticas = [];
+
+    try {
+        $stmt = $conn->query("
+            SELECT
+                u.id,
+                CONCAT(u.nombre, ' ', u.apellido) as nombre_completo,
+                u.tipo as rol,
+                COUNT(CASE WHEN DATE(gm.creado_en) = CURDATE() THEN 1 END) as hoy,
+                COUNT(CASE WHEN gm.creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) as semana,
+                COUNT(CASE WHEN gm.creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as mes,
+                COUNT(gm.id) as total
+            FROM usuarios u
+            LEFT JOIN guias_masivas gm ON u.id = gm.creado_por
+            WHERE u.activo = 1
+            GROUP BY u.id, u.nombre, u.apellido, u.tipo
+            ORDER BY mes DESC
+        ");
+
+        $estadisticas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch(PDOException $e) {
+        error_log("Error en obtenerEstadisticasEmbarquesPorUsuario: " . $e->getMessage());
+    }
+
+    return $estadisticas;
+}
+
+// Función para obtener estadísticas de facturación por usuario
+function obtenerEstadisticasFacturacionPorUsuario($conn) {
+    $estadisticas = [];
+
+    try {
+        $stmt = $conn->query("
+            SELECT
+                u.id,
+                CONCAT(u.nombre, ' ', u.apellido) as nombre_completo,
+                u.tipo as rol,
+                COALESCE(SUM(CASE WHEN DATE(df.creado_en) = CURDATE() THEN df.total ELSE 0 END), 0) as hoy,
+                COALESCE(SUM(CASE WHEN df.creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN df.total ELSE 0 END), 0) as semana,
+                COALESCE(SUM(CASE WHEN df.creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN df.total ELSE 0 END), 0) as mes,
+                COALESCE(SUM(df.total), 0) as total,
+                COUNT(df.id) as cantidad_documentos,
+                COUNT(CASE WHEN df.tipo_documento = 'FACTURA' THEN 1 END) as total_facturas,
+                COUNT(CASE WHEN df.tipo_documento = 'BOLETA' THEN 1 END) as total_boletas,
+                COUNT(CASE WHEN df.tipo_documento = 'RECIBO' THEN 1 END) as total_recibos
+            FROM usuarios u
+            LEFT JOIN documentos_facturacion df ON u.id = df.creado_por
+            WHERE u.activo = 1
+            GROUP BY u.id, u.nombre, u.apellido, u.tipo
+            ORDER BY mes DESC
+        ");
+
+        $estadisticas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch(PDOException $e) {
+        error_log("Error en obtenerEstadisticasFacturacionPorUsuario: " . $e->getMessage());
+    }
+
+    return $estadisticas;
+}
+
+// Función para obtener evolución diaria de facturación (últimos 30 días)
+function obtenerEvolucionDiariaFacturacion($conn) {
+    $evolucion = [];
+
+    try {
+        $stmt = $conn->query("
+            SELECT
+                DATE(creado_en) as fecha,
+                DATE_FORMAT(creado_en, '%d/%m') as fecha_formato,
+                COALESCE(SUM(total), 0) as monto_total,
+                COUNT(id) as cantidad_documentos
+            FROM documentos_facturacion
+            WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY DATE(creado_en), fecha_formato
+            ORDER BY fecha ASC
+        ");
+
+        $evolucion = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch(PDOException $e) {
+        error_log("Error en obtenerEvolucionDiariaFacturacion: " . $e->getMessage());
+    }
+
+    return $evolucion;
 }
 ?>
