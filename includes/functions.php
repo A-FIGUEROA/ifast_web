@@ -276,19 +276,19 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
 
             // ===== EMBARQUES/GUÍAS =====
             // Embarques hoy
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE DATE(creado_en) = CURDATE()");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE DATE(fecha_creacion) = CURDATE()");
             $stats['embarques_hoy'] = $stmt->fetch()['total'];
 
             // Embarques últimos 7 días
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
             $stats['embarques_ultimos_7_dias'] = $stmt->fetch()['total'];
 
             // Embarques últimos 30 días
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
             $stats['embarques_ultimos_30_dias'] = $stmt->fetch()['total'];
 
             // Embarques ayer
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE DATE(creado_en) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
+            $stmt = $conn->query("SELECT COUNT(*) as total FROM guias_masivas WHERE DATE(fecha_creacion) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
             $stats['embarques_ayer'] = $stmt->fetch()['total'];
 
             // ===== FACTURACIÓN =====
@@ -470,11 +470,11 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
             // Embarques por mes
             $stmt = $conn->query("
                 SELECT
-                    DATE_FORMAT(creado_en, '%Y-%m') as mes,
-                    DATE_FORMAT(creado_en, '%b') as mes_nombre,
+                    DATE_FORMAT(fecha_creacion, '%Y-%m') as mes,
+                    DATE_FORMAT(fecha_creacion, '%b') as mes_nombre,
                     COUNT(*) as total
                 FROM guias_masivas
-                WHERE creado_en >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                WHERE fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
                 GROUP BY mes, mes_nombre
                 ORDER BY mes ASC
             ");
@@ -501,7 +501,7 @@ function obtenerEstadisticas($conn, $tipo_usuario = null) {
                     c.apellido
                 FROM guias_masivas gm
                 LEFT JOIN clientes c ON gm.cliente_id = c.id
-                ORDER BY gm.creado_en DESC
+                ORDER BY gm.fecha_creacion DESC
                 LIMIT 5
             ");
             $stats['embarques_recientes'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -577,9 +577,9 @@ function obtenerEstadisticasEmbarquesPorUsuario($conn) {
                 u.id,
                 CONCAT(u.nombre, ' ', u.apellido) as nombre_completo,
                 u.tipo as rol,
-                COUNT(CASE WHEN DATE(gm.creado_en) = CURDATE() THEN 1 END) as hoy,
-                COUNT(CASE WHEN gm.creado_en >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) as semana,
-                COUNT(CASE WHEN gm.creado_en >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as mes,
+                COUNT(CASE WHEN DATE(gm.fecha_creacion) = CURDATE() THEN 1 END) as hoy,
+                COUNT(CASE WHEN gm.fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) as semana,
+                COUNT(CASE WHEN gm.fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as mes,
                 COUNT(gm.id) as total
             FROM usuarios u
             LEFT JOIN guias_masivas gm ON u.id = gm.creado_por
