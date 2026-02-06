@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Datos de cálculo
     $peso_total = (float)$_POST['peso_total'];
+    $peso_ajustado_calculado = (float)($_POST['peso_ajustado_calculado'] ?? 0);
     $total_paquetes = (int)$_POST['total_paquetes'];
     $total_guias = (int)$_POST['total_guias'];
     $cantidad_cambio_consignatario = (int)($_POST['cantidad_cambio_consignatario'] ?? 0);
@@ -49,6 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descuento = (float)($_POST['descuento'] ?? 0);
     $detalle_descuento = $_POST['detalle_descuento'] ?? '';
     $canal_aduanas = $_POST['canal_aduanas'] ?? '';
+
+    // Obtener modo de creación del documento original
+    $modo_creacion = $documento['modo_creacion'] ?? 'MANUAL';
 
     // Validaciones
     if (empty($tipo_documento) || !in_array($tipo_documento, ['FACTURA', 'BOLETA', 'RECIBO'])) {
@@ -88,20 +92,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Calcular costos
-            $costo_peso = ($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso);
+            // 1. Costo por peso - aplicar lógica según modo de creación
+            if ($modo_creacion === 'DESDE_GUIA' && $peso_ajustado_calculado > 0) {
+                // Modo DESDE_GUIA: usar peso ajustado directamente (ya se ajustó al crear)
+                $costo_peso = $peso_ajustado_calculado * $tarifa_peso;
+            } else {
+                // Modo MANUAL: aplicar regla de peso mínimo (< 1kg = tarifa mínima, >= 1kg = peso x tarifa)
+                $costo_peso = ($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso);
+            }
+
+            // 2. Desaduanaje (tarifa variable según selección)
             $costo_desaduanaje = $total_guias * $tarifa_desaduanaje;
+
+            // 3. Cambio de consignatario ($3 x cantidad)
             $costo_cambio_consignatario = $cantidad_cambio_consignatario * 3.00;
+
+            // 4. Reempaque ($5 x cantidad)
             $costo_reempaque = $cantidad_reempaque * 5.00;
+
+            // 5. Envío a provincia ($3 si aplica)
             $costo_envio_provincia = ($envio_provincia === 'SI') ? 3.00 : 0.00;
 
-            // Obtener pendiente de pago del cliente
-            $stmt_pendiente = $conn->prepare("SELECT SUM(monto_pendiente) as total_pendiente
-                                              FROM recibos_pedidos
-                                              WHERE cliente_id = :cliente_id AND pendiente_pago = 'SI'");
-            $stmt_pendiente->bindParam(':cliente_id', $cliente_id);
-            $stmt_pendiente->execute();
-            $pendiente_resultado = $stmt_pendiente->fetch();
-            $pendiente_pago = $pendiente_resultado['total_pendiente'] ?? 0.00;
+            // 6. Pendiente de pago - USAR EL VALOR GUARDADO ORIGINALMENTE
+            // NO recalcular porque no sabemos qué pedidos específicos se incluyeron
+            // Solo permitir que el usuario ajuste manualmente si es necesario
+            $pendiente_pago = $documento['pendiente_pago'];
 
             // Calcular subtotal
             $subtotal = $costo_peso + $costo_desaduanaje + $costo_cambio_consignatario +
@@ -181,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             tipo_documento = :tipo_documento,
                             cliente_id = :cliente_id,
                             peso_total = :peso_total,
+                            peso_ajustado_calculado = :peso_ajustado_calculado,
                             costo_peso = :costo_peso,
                             total_paquetes = :total_paquetes,
                             total_guias = :total_guias,
@@ -208,6 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':tipo_documento', $tipo_documento);
                 $stmt->bindParam(':cliente_id', $cliente_id);
                 $stmt->bindParam(':peso_total', $peso_total);
+                $stmt->bindParam(':peso_ajustado_calculado', $peso_ajustado_calculado);
                 $stmt->bindParam(':costo_peso', $costo_peso);
                 $stmt->bindParam(':total_paquetes', $total_paquetes);
                 $stmt->bindParam(':total_guias', $total_guias);
@@ -353,14 +370,7 @@ $tipo_usuario = obtenerTipoUsuario();
                         <select class="form-control" name="cliente_id" id="cliente_id" required>
                             <?php foreach ($clientes as $cliente): ?>
                             <option value="<?php echo $cliente['id']; ?>"
-                                    <?php echo ($cliente['id'] == $documento['cliente_id']) ? 'selected' : ''; ?>
-                                    data-pendiente="<?php
-                                        $stmt_p = $conn->prepare("SELECT SUM(monto_pendiente) as total FROM recibos_pedidos WHERE cliente_id = :id AND pendiente_pago = 'SI'");
-                                        $stmt_p->bindParam(':id', $cliente['id']);
-                                        $stmt_p->execute();
-                                        $pend = $stmt_p->fetch();
-                                        echo $pend['total'] ?? 0;
-                                    ?>">
+                                    <?php echo ($cliente['id'] == $documento['cliente_id']) ? 'selected' : ''; ?>>
                                 <?php
                                 echo $cliente['nombre_razon_social'];
                                 if ($cliente['apellido']) echo ' ' . $cliente['apellido'];
@@ -369,6 +379,7 @@ $tipo_usuario = obtenerTipoUsuario();
                             </option>
                             <?php endforeach; ?>
                         </select>
+                        <small class="info-text">⚠️ El pendiente de pago no se puede modificar al editar. Si necesita ajustarlo, cree un nuevo documento.</small>
                     </div>
                     <div class="section-title">💰 Detalles de Costos</div>
                     <div class="form-grid">
@@ -376,6 +387,9 @@ $tipo_usuario = obtenerTipoUsuario();
                             <label>Peso Total (kg) <span class="required">*</span></label>
                             <input type="number" class="form-control" name="peso_total" id="peso_total"
                                    step="0.001" min="0" value="<?php echo $documento['peso_total']; ?>" required>
+                            <small class="info-text"><?php echo ($documento['modo_creacion'] === 'DESDE_GUIA') ? '⚠️ Modo DESDE_GUIA - Se usará peso ajustado para cálculo' : 'Menos de 1kg = tarifa fija | 1kg+ = peso x tarifa'; ?></small>
+                            <!-- Campo oculto para peso ajustado (solo para modo DESDE_GUIA) -->
+                            <input type="hidden" name="peso_ajustado_calculado" id="peso_ajustado_calculado" value="<?php echo $documento['peso_ajustado_calculado'] ?? 0; ?>">
                         </div>
                         <div class="form-group">
                             <label>Costo por Peso</label>
@@ -417,8 +431,10 @@ $tipo_usuario = obtenerTipoUsuario();
                             <input type="hidden" name="envio_provincia" id="envio_provincia" value="<?php echo $documento['envio_provincia']; ?>">
                         </div>
                         <div class="form-group">
-                            <label>Pendiente de Pago (Automático)</label>
-                            <input type="text" class="form-control readonly-field" id="pendiente_pago_display" readonly>
+                            <label>Pendiente de Pago (No Modificable)</label>
+                            <input type="text" class="form-control readonly-field" id="pendiente_pago_display"
+                                   value="$<?php echo number_format($documento['pendiente_pago'], 2); ?>" readonly>
+                            <small class="info-text">Monto guardado originalmente. No se puede cambiar al editar.</small>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -502,8 +518,11 @@ $tipo_usuario = obtenerTipoUsuario();
     </main>
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
     <script>
-        let pendientePago = <?php echo $documento['pendiente_pago']; ?>;
+        // Variables del documento
+        const pendientePago = <?php echo $documento['pendiente_pago']; ?>; // CONSTANTE - no cambia al editar
         const tipoDoc = '<?php echo $documento['tipo_documento']; ?>';
+        const modoCreacion = '<?php echo $documento['modo_creacion'] ?? 'MANUAL'; ?>';
+        const pesoAjustadoOriginal = <?php echo $documento['peso_ajustado_calculado'] ?? 0; ?>;
 
         function calcularTotales() {
             // Obtener tarifa seleccionada
@@ -528,8 +547,18 @@ $tipo_usuario = obtenerTipoUsuario();
                     break;
             }
 
+            // Calcular costo por peso según modo de creación
             const peso = parseFloat(document.getElementById('peso_total').value) || 0;
-            const costoPeso = peso < 1 ? tarifaPeso : (peso * tarifaPeso);
+            let costoPeso;
+
+            if (modoCreacion === 'DESDE_GUIA' && pesoAjustadoOriginal > 0) {
+                // Modo DESDE_GUIA: usar peso ajustado guardado originalmente
+                costoPeso = pesoAjustadoOriginal * tarifaPeso;
+            } else {
+                // Modo MANUAL: aplicar regla de peso mínimo
+                costoPeso = peso < 1 ? tarifaPeso : (peso * tarifaPeso);
+            }
+
             const totalGuias = parseInt(document.getElementById('total_guias').value) || 0;
             const costoDesaduanaje = totalGuias * tarifaDesaduanaje;
             const cantidadCambio = parseInt(document.getElementById('cantidad_cambio_consignatario').value) || 0;
@@ -542,6 +571,7 @@ $tipo_usuario = obtenerTipoUsuario();
             const gastosAdicionales = parseFloat(document.getElementById('gastos_adicionales').value) || 0;
             const descuento = parseFloat(document.getElementById('descuento').value) || 0;
 
+            // Calcular subtotal - usar pendientePago constante (valor guardado originalmente)
             let subtotal = costoPeso + costoDesaduanaje + costoCambio + costoReempaque +
                           costoEnvio + pendientePago + gastosAdicionales - descuento;
 
@@ -561,6 +591,7 @@ $tipo_usuario = obtenerTipoUsuario();
             document.getElementById('total_display').textContent = '$' + total.toFixed(2);
         }
 
+        // Event listeners para recalcular totales
         document.getElementById('peso_total').addEventListener('input', calcularTotales);
         document.getElementById('total_guias').addEventListener('input', calcularTotales);
         document.getElementById('cantidad_cambio_consignatario').addEventListener('input', calcularTotales);
@@ -574,19 +605,12 @@ $tipo_usuario = obtenerTipoUsuario();
         document.getElementById('tarifa_2').addEventListener('change', calcularTotales);
         document.getElementById('tarifa_3').addEventListener('change', calcularTotales);
 
-        document.getElementById('cliente_id').addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            pendientePago = parseFloat(selectedOption.dataset.pendiente) || 0;
-            document.getElementById('pendiente_pago_display').value = '$' + pendientePago.toFixed(2);
-            calcularTotales();
-        });
+        // NOTA: NO hay listener para cambio de cliente porque:
+        // - El pendiente de pago NO se puede modificar al editar
+        // - Se usa el valor guardado originalmente en el documento
 
-        // Cargar valores iniciales
+        // Cargar valores iniciales al cargar la página
         window.addEventListener('load', function() {
-            const selectCliente = document.getElementById('cliente_id');
-            const selectedOption = selectCliente.options[selectCliente.selectedIndex];
-            pendientePago = parseFloat(selectedOption.dataset.pendiente) || 0;
-            document.getElementById('pendiente_pago_display').value = '$' + pendientePago.toFixed(2);
             calcularTotales();
         });
     </script>

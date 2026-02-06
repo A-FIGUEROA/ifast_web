@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $sql = "INSERT INTO documentos_facturacion (
                             tipo_documento, numero_documento, cliente_id,
-                            peso_total, costo_peso,
+                            peso_total, peso_ajustado_calculado, costo_peso,
                             total_paquetes, total_guias, costo_desaduanaje,
                             cantidad_cambio_consignatario, costo_cambio_consignatario,
                             cantidad_reempaque, costo_reempaque,
@@ -244,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             creado_por
                         ) VALUES (
                             :tipo_documento, :numero_documento, :cliente_id,
-                            :peso_total, :costo_peso,
+                            :peso_total, :peso_ajustado_calculado, :costo_peso,
                             :total_paquetes, :total_guias, :costo_desaduanaje,
                             :cantidad_cambio_consignatario, :costo_cambio_consignatario,
                             :cantidad_reempaque, :costo_reempaque,
@@ -265,6 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':numero_documento', $numero_documento);
                 $stmt->bindParam(':cliente_id', $cliente_id);
                 $stmt->bindParam(':peso_total', $peso_total);
+                $stmt->bindParam(':peso_ajustado_calculado', $peso_ajustado_calculado);
                 $stmt->bindParam(':costo_peso', $costo_peso);
                 $stmt->bindParam(':total_paquetes', $total_paquetes);
                 $stmt->bindParam(':total_guias', $total_guias);
