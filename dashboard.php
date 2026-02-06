@@ -1,15 +1,15 @@
 <?php
 // dashboard.php
-// Panel principal del sistema
+// Panel principal del sistema - Dashboard de Administrador
 
 require_once 'config/database.php';
 require_once 'includes/auth.php';
 require_once 'includes/functions.php';
 
-// Verificar que el usuario est茅 logueado
+// Verificar que el usuario esté logueado
 requiereLogin();
 
-// Obtener conexi贸n
+// Obtener conexión
 $database = new Database();
 $conn = $database->getConnection();
 
@@ -17,26 +17,34 @@ $conn = $database->getConnection();
 $tipo_usuario = obtenerTipoUsuario();
 $nombre_usuario = obtenerNombreUsuario();
 
-// Obtener estad铆sticas (pasando tipo de usuario para estad铆sticas avanzadas)
-$stats = obtenerEstadisticas($conn, $tipo_usuario);
-
-// Obtener estad铆sticas de embarques y facturaci贸n por usuario (solo para ADMIN)
-$embarques_por_usuario = [];
-$facturacion_por_usuario = [];
-$evolucion_facturacion = [];
+// Obtener estadísticas mensuales y de vendedores (solo para ADMIN)
+$estadisticas_mensuales = [];
+$vendedores_mensuales = [];
+$stats_basicas = [];
 
 if ($tipo_usuario === 'ADMIN') {
-    $embarques_por_usuario = obtenerEstadisticasEmbarquesPorUsuario($conn);
-    $facturacion_por_usuario = obtenerEstadisticasFacturacionPorUsuario($conn);
-    $evolucion_facturacion = obtenerEvolucionDiariaFacturacion($conn);
+    $estadisticas_mensuales = obtenerEstadisticasMensualesGenerales($conn);
+    $vendedores_mensuales = obtenerEstadisticasVendedoresMensual($conn);
+} else {
+    // Estadísticas básicas para usuarios no admin
+    $stats_basicas = obtenerEstadisticas($conn, $tipo_usuario);
 }
+
+// Obtener nombre del mes actual en español
+$meses = [
+    1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+    5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+    9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+];
+$mes_actual = $meses[date('n')];
+$anio_actual = date('Y');
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Sistema de Gestion</title>
+    <title>Dashboard - Sistema de Gestión</title>
     <style>
         * {
             margin: 0;
@@ -55,7 +63,6 @@ if ($tipo_usuario === 'ADMIN') {
             min-height: 100vh;
         }
 
-
         /* MAIN CONTENT */
         .main-content {
             flex: 1;
@@ -63,24 +70,27 @@ if ($tipo_usuario === 'ADMIN') {
             transition: all 0.3s;
         }
 
-
         /* CONTENT */
         .content {
             padding: 30px;
         }
 
+        /* WELCOME BANNER */
         .welcome-banner {
             background: linear-gradient(135deg, #00296B 0%, #00509D 100%);
             color: white;
             padding: 30px;
             border-radius: 15px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 41, 107, 0.3);
         }
 
         .welcome-banner h2 {
             font-size: 1.8rem;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .welcome-banner p {
@@ -88,23 +98,36 @@ if ($tipo_usuario === 'ADMIN') {
             opacity: 0.9;
         }
 
+        /* SECTION TITLES */
+        .section-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin: 40px 0 20px 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         /* STATS CARDS */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
         .stat-card {
             background: white;
-            padding: 25px;
+            padding: 30px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             display: flex;
             align-items: center;
             gap: 20px;
             transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
 
         .stat-card:hover {
@@ -112,14 +135,26 @@ if ($tipo_usuario === 'ADMIN') {
             box-shadow: 0 10px 30px rgba(0,0,0,0.12);
         }
 
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            border-radius: 0 15px 0 100%;
+        }
+
         .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 70px;
+            height: 70px;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: 2rem;
+            flex-shrink: 0;
         }
 
         .stat-icon.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -127,31 +162,60 @@ if ($tipo_usuario === 'ADMIN') {
         .stat-icon.orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .stat-icon.purple { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
 
+        .stat-details {
+            flex: 1;
+        }
+
         .stat-details h3 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             color: #2c3e50;
             font-weight: 700;
             margin-bottom: 5px;
+            line-height: 1;
         }
 
         .stat-details p {
             color: #7f8c8d;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            font-weight: 500;
         }
 
-        /* TABLE */
+        .stat-comparison {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-comparison.positive {
+            color: #27ae60;
+            background: #d5f4e6;
+        }
+
+        .stat-comparison.negative {
+            color: #e74c3c;
+            background: #fadbd8;
+        }
+
+        /* CARD */
         .card {
             background: white;
             border-radius: 15px;
-            padding: 25px;
+            padding: 30px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             padding-bottom: 15px;
             border-bottom: 2px solid #f5f7fa;
         }
@@ -159,9 +223,13 @@ if ($tipo_usuario === 'ADMIN') {
         .card-header h3 {
             font-size: 1.3rem;
             color: #2c3e50;
-            font-weight: 600;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
+        /* TABLE */
         .table-container {
             overflow-x: auto;
         }
@@ -180,69 +248,113 @@ if ($tipo_usuario === 'ADMIN') {
             font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        th.text-right {
+            text-align: right;
         }
 
         td {
-            padding: 15px;
+            padding: 18px 15px;
             border-bottom: 1px solid #f0f0f0;
             color: #555;
+            font-size: 0.95rem;
         }
 
-        tr:hover td {
-            background: #f8f9fa;
+        td.text-right {
+            text-align: right;
         }
 
+        tbody tr {
+            transition: background 0.2s;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #fafbfc;
+        }
+
+        tbody tr:hover {
+            background: #e8f4f8 !important;
+        }
+
+        td strong {
+            font-size: 1rem;
+            color: #2c3e50;
+        }
+
+        td small {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            display: block;
+            margin-top: 3px;
+        }
+
+        /* BADGE */
         .badge {
             display: inline-block;
             padding: 5px 12px;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
+        .badge-admin {
+            background: #667eea;
+            color: white;
         }
 
+        .badge-vendedor {
+            background: #11998e;
+            color: white;
+        }
+
+        .badge-usuario {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .badge-new-clients {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 14px;
+            background: #d5f4e6;
+            color: #27ae60;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        /* EMPTY STATE */
         .empty-state {
             text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
+            padding: 60px 20px;
+            color: #95a5a6;
         }
 
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 15px;
+        .empty-state box-icon {
+            margin-bottom: 20px;
             opacity: 0.5;
         }
 
-        /* ESTADÍSTICAS COLORES */
-        .text-success {
-            color: #28a745;
+        .empty-state p {
+            font-size: 1.1rem;
         }
 
-        .text-danger {
-            color: #dc3545;
+        /* STATS FOR NON-ADMIN */
+        .stats-grid-basic {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
         }
 
         /* RESPONSIVE */
         @media (max-width: 768px) {
-
             .main-content {
                 margin-left: 0;
-            }
-
-            .header {
-                padding: 15px;
-            }
-
-            .header-left h1 {
-                font-size: 1.3rem;
-            }
-
-            .user-details {
-                display: none;
             }
 
             .content {
@@ -252,553 +364,274 @@ if ($tipo_usuario === 'ADMIN') {
             .stats-grid {
                 grid-template-columns: 1fr;
             }
+
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stat-details h3 {
+                font-size: 1.8rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .table-container {
+                font-size: 0.9rem;
+            }
+
+            th, td {
+                padding: 10px;
+            }
         }
     </style>
 </head>
 <body>
- <?php require_once 'includes/sidebar.php'; ?>
-        <!-- MAIN CONTENT -->
-<main class="main-content">
-            <!-- HEADER -->
-     <header >
-         <?php require_once 'includes/header.php';?>
-     </header>
+    <?php require_once 'includes/sidebar.php'; ?>
 
-            <!-- CONTENT -->
-            <div class="content">
-                <!-- WELCOME BANNER -->
-                <div class="welcome-banner">
-                    <h2>Bienvenido, <?php echo explode(' ', $nombre_usuario)[0]; ?>! <box-icon name='happy-beaming' type='solid' color= 'white' size='30px'></box-icon></h2>
-                    <p>Aqui tienes un resumen de tu sistema de gestion</p>
-                </div>
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- HEADER -->
+        <header>
+            <?php require_once 'includes/header.php'; ?>
+        </header>
 
-                <!-- STATS -->
-                <?php if ($tipo_usuario === 'ADMIN'): ?>
-                <!-- DASHBOARD ADMINISTRADOR CON ESTADÍSTICAS AVANZADAS -->
+        <!-- CONTENT -->
+        <div class="content">
+            <!-- WELCOME BANNER -->
+            <div class="welcome-banner">
+                <h2>
+                    Bienvenido, <?php echo explode(' ', $nombre_usuario)[0]; ?>!
+                    <box-icon name='happy-beaming' type='solid' color='white' size='30px'></box-icon>
+                </h2>
+                <p>Dashboard de gestión y métricas del sistema</p>
+            </div>
 
-                <!-- Tarjetas de Hoy con Comparación -->
+            <?php if ($tipo_usuario === 'ADMIN'): ?>
+                <!-- ============================================ -->
+                <!-- DASHBOARD ADMINISTRADOR -->
+                <!-- ============================================ -->
+
+                <!-- TÍTULO DE SECCIÓN -->
+                <h2 class="section-title">
+                    <box-icon name='line-chart' type='solid' color='#2c3e50'></box-icon>
+                    Métricas del Mes - <?php echo $mes_actual . ' ' . $anio_actual; ?>
+                </h2>
+
+                <!-- MÉTRICAS MENSUALES -->
                 <div class="stats-grid">
+                    <!-- 1. PESO TOTAL DEL MES -->
                     <div class="stat-card">
                         <div class="stat-icon blue">
-                            <box-icon type='solid' name='user-check'></box-icon>
+                            <box-icon name='package' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo $stats['clientes_hoy']; ?></h3>
-                            <p>Clientes Hoy</p>
+                            <h3><?php echo number_format($estadisticas_mensuales['peso_total_mes'], 2); ?> kg</h3>
+                            <p>Peso Total del Mes</p>
                             <?php
-                            $variacion_clientes = 0;
-                            if ($stats['clientes_ayer'] > 0) {
-                                $variacion_clientes = (($stats['clientes_hoy'] - $stats['clientes_ayer']) / $stats['clientes_ayer']) * 100;
-                            } elseif ($stats['clientes_hoy'] > 0) {
-                                $variacion_clientes = 100;
+                            $variacion_peso = 0;
+                            if ($estadisticas_mensuales['peso_total_mes_anterior'] > 0) {
+                                $variacion_peso = (($estadisticas_mensuales['peso_total_mes'] - $estadisticas_mensuales['peso_total_mes_anterior']) / $estadisticas_mensuales['peso_total_mes_anterior']) * 100;
+                            } elseif ($estadisticas_mensuales['peso_total_mes'] > 0) {
+                                $variacion_peso = 100;
                             }
-                            $clase_variacion = $variacion_clientes >= 0 ? 'text-success' : 'text-danger';
-                            $icono_variacion = $variacion_clientes >= 0 ? '↗️' : '↘️';
+                            $clase_peso = $variacion_peso >= 0 ? 'positive' : 'negative';
+                            $icono_peso = $variacion_peso >= 0 ? '↗' : '↘';
                             ?>
-                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
-                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_clientes), 1); ?>% vs ayer
-                            </small>
+                            <span class="stat-comparison <?php echo $clase_peso; ?>">
+                                <?php echo $icono_peso; ?> <?php echo number_format(abs($variacion_peso), 1); ?>% vs mes pasado
+                            </span>
                         </div>
                     </div>
 
+                    <!-- 2. GUÍAS TOTALES DEL MES -->
                     <div class="stat-card">
                         <div class="stat-icon green">
-                            <box-icon name='package' type='solid'></box-icon>
+                            <box-icon name='file-blank' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo $stats['pedidos_hoy']; ?></h3>
-                            <p>Pedidos Hoy</p>
+                            <h3><?php echo number_format($estadisticas_mensuales['guias_mes']); ?></h3>
+                            <p>Guías Totales del Mes</p>
                             <?php
-                            $variacion_pedidos = 0;
-                            if ($stats['pedidos_ayer'] > 0) {
-                                $variacion_pedidos = (($stats['pedidos_hoy'] - $stats['pedidos_ayer']) / $stats['pedidos_ayer']) * 100;
-                            } elseif ($stats['pedidos_hoy'] > 0) {
-                                $variacion_pedidos = 100;
+                            $variacion_guias = 0;
+                            if ($estadisticas_mensuales['guias_mes_anterior'] > 0) {
+                                $variacion_guias = (($estadisticas_mensuales['guias_mes'] - $estadisticas_mensuales['guias_mes_anterior']) / $estadisticas_mensuales['guias_mes_anterior']) * 100;
+                            } elseif ($estadisticas_mensuales['guias_mes'] > 0) {
+                                $variacion_guias = 100;
                             }
-                            $clase_variacion = $variacion_pedidos >= 0 ? 'text-success' : 'text-danger';
-                            $icono_variacion = $variacion_pedidos >= 0 ? '↗️' : '↘️';
+                            $clase_guias = $variacion_guias >= 0 ? 'positive' : 'negative';
+                            $icono_guias = $variacion_guias >= 0 ? '↗' : '↘';
                             ?>
-                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
-                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_pedidos), 1); ?>% vs ayer
-                            </small>
+                            <span class="stat-comparison <?php echo $clase_guias; ?>">
+                                <?php echo $icono_guias; ?> <?php echo number_format(abs($variacion_guias), 1); ?>% vs mes pasado
+                            </span>
                         </div>
                     </div>
 
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <box-icon name='ship' type='solid'></box-icon>
-                        </div>
-                        <div class="stat-details">
-                            <h3><?php echo $stats['embarques_hoy']; ?></h3>
-                            <p>Embarques Hoy</p>
-                            <?php
-                            $variacion_embarques = 0;
-                            if ($stats['embarques_ayer'] > 0) {
-                                $variacion_embarques = (($stats['embarques_hoy'] - $stats['embarques_ayer']) / $stats['embarques_ayer']) * 100;
-                            } elseif ($stats['embarques_hoy'] > 0) {
-                                $variacion_embarques = 100;
-                            }
-                            $clase_variacion = $variacion_embarques >= 0 ? 'text-success' : 'text-danger';
-                            $icono_variacion = $variacion_embarques >= 0 ? '↗️' : '↘️';
-                            ?>
-                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
-                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_embarques), 1); ?>% vs ayer
-                            </small>
-                        </div>
-                    </div>
-
+                    <!-- 3. FACTURACIÓN MENSUAL -->
                     <div class="stat-card">
                         <div class="stat-icon purple">
-                            <box-icon name='dollar-circle' type='solid'></box-icon>
+                            <box-icon name='dollar-circle' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3>$<?php echo number_format($stats['total_facturacion_hoy'], 2); ?></h3>
-                            <p>Facturado Hoy</p>
+                            <h3>$<?php echo number_format($estadisticas_mensuales['facturacion_mes'], 2); ?></h3>
+                            <p>Facturación Total del Mes</p>
                             <?php
-                            $variacion_facturacion = 0;
-                            if ($stats['total_facturacion_ayer'] > 0) {
-                                $variacion_facturacion = (($stats['total_facturacion_hoy'] - $stats['total_facturacion_ayer']) / $stats['total_facturacion_ayer']) * 100;
-                            } elseif ($stats['total_facturacion_hoy'] > 0) {
-                                $variacion_facturacion = 100;
+                            $variacion_fact = 0;
+                            if ($estadisticas_mensuales['facturacion_mes_anterior'] > 0) {
+                                $variacion_fact = (($estadisticas_mensuales['facturacion_mes'] - $estadisticas_mensuales['facturacion_mes_anterior']) / $estadisticas_mensuales['facturacion_mes_anterior']) * 100;
+                            } elseif ($estadisticas_mensuales['facturacion_mes'] > 0) {
+                                $variacion_fact = 100;
                             }
-                            $clase_variacion = $variacion_facturacion >= 0 ? 'text-success' : 'text-danger';
-                            $icono_variacion = $variacion_facturacion >= 0 ? '↗️' : '↘️';
+                            $clase_fact = $variacion_fact >= 0 ? 'positive' : 'negative';
+                            $icono_fact = $variacion_fact >= 0 ? '↗' : '↘';
                             ?>
-                            <small class="<?php echo $clase_variacion; ?>" style="font-size: 0.85rem; font-weight: 600;">
-                                <?php echo $icono_variacion; ?> <?php echo number_format(abs($variacion_facturacion), 1); ?>% vs ayer
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ===================================== -->
-                <!-- GRÁFICOS DE EMBARQUES POR USUARIO -->
-                <!-- ===================================== -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
-
-                    <!-- Embarques Diarios -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>📦 Embarques Diarios</h3>
-                        </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartEmbarquesDiarios" height="300"></canvas>
+                            <span class="stat-comparison <?php echo $clase_fact; ?>">
+                                <?php echo $icono_fact; ?> <?php echo number_format(abs($variacion_fact), 1); ?>% vs mes pasado
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Embarques Semanales -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>📦 Embarques Semanales</h3>
-                        </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartEmbarquesSemanales" height="300"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Embarques Mensuales -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>📦 Embarques Mensuales</h3>
-                        </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartEmbarquesMensuales" height="300"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ===================================== -->
-                <!-- GRÁFICOS DE FACTURACIÓN POR USUARIO -->
-                <!-- ===================================== -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
-
-                    <!-- Facturación Diaria -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>💰 Facturación Diaria</h3>
-                        </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartFacturacionDiaria" height="300"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Facturación Semanal -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>💰 Facturación Semanal</h3>
-                        </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartFacturacionSemanal" height="300"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Facturación Mensual -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>💰 Facturación Mensual</h3>
-                        </div>
-                        <div style="padding: 20px;">
-                            <canvas id="chartFacturacionMensual" height="300"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <?php else: ?>
-                <!-- DASHBOARD PARA OTROS USUARIOS -->
-                <div class="stats-grid">
-                    <?php if ($tipo_usuario === 'ADMIN'): ?>
+                    <!-- 4. DOCUMENTOS GENERADOS (BONUS) -->
                     <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <box-icon name="rocket"></box-icon>
+                        <div class="stat-icon orange">
+                            <box-icon name='receipt' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo $stats['total_usuarios']; ?></h3>
-                            <p>Total Usuarios</p>
+                            <h3><?php echo number_format($estadisticas_mensuales['documentos_mes']); ?></h3>
+                            <p>Documentos Generados</p>
+                            <span style="font-size: 0.85rem; color: #666;">
+                                <?php echo $estadisticas_mensuales['facturas_mes']; ?> Facturas ·
+                                <?php echo $estadisticas_mensuales['boletas_mes']; ?> Boletas ·
+                                <?php echo $estadisticas_mensuales['recibos_mes']; ?> Recibos
+                            </span>
                         </div>
                     </div>
-                    <?php endif; ?>
+                </div>
 
+                <!-- TABLA DE VENDEDORES -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>
+                            <box-icon name='group' type='solid' color='#2c3e50'></box-icon>
+                            Rendimiento de Vendedores - <?php echo $mes_actual . ' ' . $anio_actual; ?>
+                        </h3>
+                    </div>
+                    <div class="table-container">
+                        <?php if (count($vendedores_mensuales) > 0): ?>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vendedor</th>
+                                    <th>Rol</th>
+                                    <th class="text-right">Peso (kg)</th>
+                                    <th class="text-right">Guías</th>
+                                    <th class="text-right">Facturación</th>
+                                    <th class="text-right">Clientes Nuevos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($vendedores_mensuales as $vendedor): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($vendedor['nombre_completo']); ?></strong>
+                                        <small><?php echo htmlspecialchars($vendedor['email']); ?></small>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $rol_lower = strtolower($vendedor['rol']);
+                                        $badge_class = 'badge-usuario';
+                                        if ($rol_lower === 'admin') {
+                                            $badge_class = 'badge-admin';
+                                        } elseif (strpos($rol_lower, 'vend') !== false) {
+                                            $badge_class = 'badge-vendedor';
+                                        }
+                                        ?>
+                                        <span class="badge <?php echo $badge_class; ?>">
+                                            <?php echo htmlspecialchars($vendedor['rol']); ?>
+                                        </span>
+                                    </td>
+                                    <td class="text-right">
+                                        <strong><?php echo number_format($vendedor['peso_mes'], 2); ?> kg</strong>
+                                        <small>Total: <?php echo number_format($vendedor['peso_total'], 2); ?> kg</small>
+                                    </td>
+                                    <td class="text-right">
+                                        <strong><?php echo number_format($vendedor['guias_mes']); ?></strong>
+                                        <small>Total: <?php echo number_format($vendedor['guias_total']); ?></small>
+                                    </td>
+                                    <td class="text-right">
+                                        <strong style="color: #00509d; font-size: 1.05rem;">$<?php echo number_format($vendedor['facturacion_mes'], 2); ?></strong>
+                                        <small>Total: $<?php echo number_format($vendedor['facturacion_total'], 2); ?></small>
+                                    </td>
+                                    <td class="text-right">
+                                        <?php if ($vendedor['clientes_nuevos_mes'] > 0): ?>
+                                        <span class="badge-new-clients">
+                                            <box-icon name='user-plus' type='solid' size='16px' color='#27ae60'></box-icon>
+                                            +<?php echo $vendedor['clientes_nuevos_mes']; ?>
+                                        </span>
+                                        <?php else: ?>
+                                        <span style="color: #95a5a6;">0</span>
+                                        <?php endif; ?>
+                                        <small>Total: <?php echo $vendedor['clientes_total']; ?> clientes</small>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                        <?php else: ?>
+                        <div class="empty-state">
+                            <box-icon name='user-x' size='60px' color='#95a5a6'></box-icon>
+                            <p>No hay datos de vendedores para mostrar</p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+            <?php else: ?>
+                <!-- ============================================ -->
+                <!-- DASHBOARD PARA USUARIOS NO ADMIN -->
+                <!-- ============================================ -->
+                <h2 class="section-title">
+                    <box-icon name='pie-chart-alt-2' type='solid' color='#2c3e50'></box-icon>
+                    Estadísticas Generales
+                </h2>
+
+                <div class="stats-grid-basic">
                     <div class="stat-card">
                         <div class="stat-icon green">
-                            <box-icon type='solid' name='user-check'></box-icon>
+                            <box-icon type='solid' name='user-check' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo $stats['total_clientes']; ?></h3>
+                            <h3><?php echo $stats_basicas['total_clientes']; ?></h3>
                             <p>Total Clientes</p>
                         </div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-icon orange">
-                            <box-icon name='package' type='solid' flip='horizontal' ></box-icon>
+                            <box-icon name='package' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo $stats['total_pedidos']; ?></h3>
+                            <h3><?php echo $stats_basicas['total_pedidos']; ?></h3>
                             <p>Total Pedidos</p>
                         </div>
                     </div>
 
                     <div class="stat-card">
                         <div class="stat-icon purple">
-                            <box-icon name='file' type='solid' flip='horizontal' ></box-icon>
+                            <box-icon name='file' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo $stats['total_archivos']; ?></h3>
+                            <h3><?php echo $stats_basicas['total_archivos']; ?></h3>
                             <p>Total Archivos</p>
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
-            </div>
-        </main>
-    </div>
+            <?php endif; ?>
+        </div>
+    </main>
 
-    <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-    <?php if ($tipo_usuario === 'ADMIN'): ?>
-    <!-- JavaScript para Gráficos del Dashboard ADMIN -->
-    <script>
-        const embarquesPorUsuario = <?php echo json_encode($embarques_por_usuario); ?>;
-        const facturacionPorUsuario = <?php echo json_encode($facturacion_por_usuario); ?>;
-
-        console.log('Embarques por usuario:', embarquesPorUsuario);
-        console.log('Facturación por usuario:', facturacionPorUsuario);
-
-        // Verificar si hay datos
-        if (!embarquesPorUsuario || embarquesPorUsuario.length === 0) {
-            console.error('No hay datos de embarques por usuario');
-        }
-        if (!facturacionPorUsuario || facturacionPorUsuario.length === 0) {
-            console.error('No hay datos de facturación por usuario');
-        }
-
-        const nombresUsuarios = embarquesPorUsuario && embarquesPorUsuario.length > 0 ? embarquesPorUsuario.map(e => e.nombre_completo) : [];
-        const coloresBarras = [
-            'rgba(102, 126, 234, 0.8)',
-            'rgba(17, 153, 142, 0.8)',
-            'rgba(245, 87, 108, 0.8)',
-            'rgba(79, 172, 254, 0.8)',
-            'rgba(240, 147, 251, 0.8)',
-            'rgba(56, 239, 125, 0.8)'
-        ];
-
-        // ========================================
-        // GRÁFICO 1: EMBARQUES DIARIOS POR USUARIO
-        // ========================================
-        const ctxEmbarquesDiarios = document.getElementById('chartEmbarquesDiarios');
-        if (ctxEmbarquesDiarios) {
-            const embarquesDiarios = embarquesPorUsuario.map(e => parseInt(e.hoy));
-
-            new Chart(ctxEmbarquesDiarios, {
-                type: 'bar',
-                data: {
-                    labels: nombresUsuarios,
-                    datasets: [{
-                        label: 'Embarques Hoy',
-                        data: embarquesDiarios,
-                        backgroundColor: coloresBarras,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Embarques: ' + context.parsed.y;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ========================================
-        // GRÁFICO 2: EMBARQUES SEMANALES POR USUARIO
-        // ========================================
-        const ctxEmbarquesSemanales = document.getElementById('chartEmbarquesSemanales');
-        if (ctxEmbarquesSemanales) {
-            const embarquesSemanales = embarquesPorUsuario.map(e => parseInt(e.semana));
-
-            new Chart(ctxEmbarquesSemanales, {
-                type: 'bar',
-                data: {
-                    labels: nombresUsuarios,
-                    datasets: [{
-                        label: 'Embarques (7 días)',
-                        data: embarquesSemanales,
-                        backgroundColor: coloresBarras,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Embarques: ' + context.parsed.y;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ========================================
-        // GRÁFICO 3: EMBARQUES MENSUALES POR USUARIO
-        // ========================================
-        const ctxEmbarquesMensuales = document.getElementById('chartEmbarquesMensuales');
-        if (ctxEmbarquesMensuales) {
-            const embarquesMensuales = embarquesPorUsuario.map(e => parseInt(e.mes));
-
-            new Chart(ctxEmbarquesMensuales, {
-                type: 'bar',
-                data: {
-                    labels: nombresUsuarios,
-                    datasets: [{
-                        label: 'Embarques (30 días)',
-                        data: embarquesMensuales,
-                        backgroundColor: coloresBarras,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Embarques: ' + context.parsed.y;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ========================================
-        // GRÁFICO 4: FACTURACIÓN DIARIA POR USUARIO
-        // ========================================
-        const ctxFacturacionDiaria = document.getElementById('chartFacturacionDiaria');
-        if (ctxFacturacionDiaria) {
-            const facturacionDiaria = facturacionPorUsuario.map(f => parseFloat(f.hoy));
-
-            new Chart(ctxFacturacionDiaria, {
-                type: 'bar',
-                data: {
-                    labels: nombresUsuarios,
-                    datasets: [{
-                        label: 'Facturación Hoy',
-                        data: facturacionDiaria,
-                        backgroundColor: coloresBarras,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Facturado: $' + context.parsed.y.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(0);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ========================================
-        // GRÁFICO 5: FACTURACIÓN SEMANAL POR USUARIO
-        // ========================================
-        const ctxFacturacionSemanal = document.getElementById('chartFacturacionSemanal');
-        if (ctxFacturacionSemanal) {
-            const facturacionSemanal = facturacionPorUsuario.map(f => parseFloat(f.semana));
-
-            new Chart(ctxFacturacionSemanal, {
-                type: 'bar',
-                data: {
-                    labels: nombresUsuarios,
-                    datasets: [{
-                        label: 'Facturación (7 días)',
-                        data: facturacionSemanal,
-                        backgroundColor: coloresBarras,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Facturado: $' + context.parsed.y.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(0);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ========================================
-        // GRÁFICO 6: FACTURACIÓN MENSUAL POR USUARIO
-        // ========================================
-        const ctxFacturacionMensual = document.getElementById('chartFacturacionMensual');
-        if (ctxFacturacionMensual) {
-            const facturacionMensual = facturacionPorUsuario.map(f => parseFloat(f.mes));
-
-            new Chart(ctxFacturacionMensual, {
-                type: 'bar',
-                data: {
-                    labels: nombresUsuarios,
-                    datasets: [{
-                        label: 'Facturación (30 días)',
-                        data: facturacionMensual,
-                        backgroundColor: coloresBarras,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Facturado: $' + context.parsed.y.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(0);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    </script>
-    <?php endif; ?>
+    <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
 </body>
 </html>

@@ -651,4 +651,147 @@ function obtenerEvolucionDiariaFacturacion($conn) {
 
     return $evolucion;
 }
+
+// Función para obtener estadísticas generales del mes actual
+function obtenerEstadisticasMensualesGenerales($conn) {
+    $stats = [
+        'peso_total_mes' => 0,
+        'peso_total_mes_anterior' => 0,
+        'guias_mes' => 0,
+        'guias_mes_anterior' => 0,
+        'facturacion_mes' => 0,
+        'facturacion_mes_anterior' => 0,
+        'documentos_mes' => 0,
+        'facturas_mes' => 0,
+        'boletas_mes' => 0,
+        'recibos_mes' => 0,
+        'monto_facturas_mes' => 0,
+        'monto_boletas_mes' => 0,
+        'monto_recibos_mes' => 0
+    ];
+
+    try {
+        // Estadísticas del mes actual
+        $stmt = $conn->query("
+            SELECT
+                COALESCE(SUM(peso_total), 0) as peso_total,
+                COALESCE(SUM(total_guias), 0) as guias_total,
+                COALESCE(SUM(total), 0) as facturacion_total,
+                COUNT(id) as documentos,
+                COUNT(CASE WHEN tipo_documento = 'FACTURA' THEN 1 END) as facturas,
+                COUNT(CASE WHEN tipo_documento = 'BOLETA' THEN 1 END) as boletas,
+                COUNT(CASE WHEN tipo_documento = 'RECIBO' THEN 1 END) as recibos,
+                COALESCE(SUM(CASE WHEN tipo_documento = 'FACTURA' THEN total ELSE 0 END), 0) as monto_facturas,
+                COALESCE(SUM(CASE WHEN tipo_documento = 'BOLETA' THEN total ELSE 0 END), 0) as monto_boletas,
+                COALESCE(SUM(CASE WHEN tipo_documento = 'RECIBO' THEN total ELSE 0 END), 0) as monto_recibos
+            FROM documentos_facturacion
+            WHERE YEAR(creado_en) = YEAR(CURDATE())
+              AND MONTH(creado_en) = MONTH(CURDATE())
+        ");
+        $mesActual = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stats['peso_total_mes'] = $mesActual['peso_total'];
+        $stats['guias_mes'] = $mesActual['guias_total'];
+        $stats['facturacion_mes'] = $mesActual['facturacion_total'];
+        $stats['documentos_mes'] = $mesActual['documentos'];
+        $stats['facturas_mes'] = $mesActual['facturas'];
+        $stats['boletas_mes'] = $mesActual['boletas'];
+        $stats['recibos_mes'] = $mesActual['recibos'];
+        $stats['monto_facturas_mes'] = $mesActual['monto_facturas'];
+        $stats['monto_boletas_mes'] = $mesActual['monto_boletas'];
+        $stats['monto_recibos_mes'] = $mesActual['monto_recibos'];
+
+        // Estadísticas del mes anterior (para comparación)
+        $stmt = $conn->query("
+            SELECT
+                COALESCE(SUM(peso_total), 0) as peso_total,
+                COALESCE(SUM(total_guias), 0) as guias_total,
+                COALESCE(SUM(total), 0) as facturacion_total
+            FROM documentos_facturacion
+            WHERE YEAR(creado_en) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+              AND MONTH(creado_en) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+        ");
+        $mesAnterior = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stats['peso_total_mes_anterior'] = $mesAnterior['peso_total'];
+        $stats['guias_mes_anterior'] = $mesAnterior['guias_total'];
+        $stats['facturacion_mes_anterior'] = $mesAnterior['facturacion_total'];
+
+    } catch(PDOException $e) {
+        error_log("Error en obtenerEstadisticasMensualesGenerales: " . $e->getMessage());
+    }
+
+    return $stats;
+}
+
+// Función para obtener estadísticas detalladas de cada vendedor del mes actual
+function obtenerEstadisticasVendedoresMensual($conn) {
+    $vendedores = [];
+
+    try {
+        $stmt = $conn->query("
+            SELECT
+                u.id,
+                CONCAT(u.nombre, ' ', u.apellido) as nombre_completo,
+                u.tipo as rol,
+                u.email,
+
+                -- PESO MENSUAL
+                COALESCE(SUM(
+                    CASE
+                        WHEN YEAR(df.creado_en) = YEAR(CURDATE())
+                         AND MONTH(df.creado_en) = MONTH(CURDATE())
+                        THEN df.peso_total
+                        ELSE 0
+                    END
+                ), 0) as peso_mes,
+
+                -- GUÍAS MENSUALES
+                COALESCE(SUM(
+                    CASE
+                        WHEN YEAR(df.creado_en) = YEAR(CURDATE())
+                         AND MONTH(df.creado_en) = MONTH(CURDATE())
+                        THEN df.total_guias
+                        ELSE 0
+                    END
+                ), 0) as guias_mes,
+
+                -- FACTURACIÓN MENSUAL
+                COALESCE(SUM(
+                    CASE
+                        WHEN YEAR(df.creado_en) = YEAR(CURDATE())
+                         AND MONTH(df.creado_en) = MONTH(CURDATE())
+                        THEN df.total
+                        ELSE 0
+                    END
+                ), 0) as facturacion_mes,
+
+                -- CLIENTES NUEVOS DEL MES
+                COUNT(DISTINCT CASE
+                    WHEN YEAR(c.creado_en) = YEAR(CURDATE())
+                     AND MONTH(c.creado_en) = MONTH(CURDATE())
+                    THEN c.id
+                END) as clientes_nuevos_mes,
+
+                -- TOTALES HISTÓRICOS
+                COALESCE(SUM(df.peso_total), 0) as peso_total,
+                COALESCE(SUM(df.total_guias), 0) as guias_total,
+                COALESCE(SUM(df.total), 0) as facturacion_total,
+                COUNT(DISTINCT c.id) as clientes_total
+
+            FROM usuarios u
+            LEFT JOIN documentos_facturacion df ON u.id = df.creado_por
+            LEFT JOIN clientes c ON u.id = c.creado_por
+            GROUP BY u.id, u.nombre, u.apellido, u.tipo, u.email
+            ORDER BY facturacion_mes DESC
+        ");
+
+        $vendedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch(PDOException $e) {
+        error_log("Error en obtenerEstadisticasVendedoresMensual: " . $e->getMessage());
+    }
+
+    return $vendedores;
+}
 ?>
