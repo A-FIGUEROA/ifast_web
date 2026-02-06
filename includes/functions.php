@@ -652,27 +652,50 @@ function obtenerEvolucionDiariaFacturacion($conn) {
     return $evolucion;
 }
 
-// Función para obtener estadísticas generales del mes actual
-function obtenerEstadisticasMensualesGenerales($conn) {
+// Función para obtener estadísticas generales del período seleccionado
+function obtenerEstadisticasMensualesGenerales($conn, $fecha_desde = null, $fecha_hasta = null) {
+    // Si no se especifican fechas, usar mes actual por defecto
+    if ($fecha_desde === null || $fecha_hasta === null) {
+        $fecha_desde = date('Y-m-01');
+        $fecha_hasta = date('Y-m-t');
+    }
+
+    // Calcular período de comparación (mismo rango, período anterior)
+    $inicio = new DateTime($fecha_desde);
+    $fin = new DateTime($fecha_hasta);
+    $dias = $inicio->diff($fin)->days + 1;
+
+    $fin_anterior = clone $inicio;
+    $fin_anterior->modify('-1 day');
+    $inicio_anterior = clone $fin_anterior;
+    $inicio_anterior->modify('-' . ($dias - 1) . ' days');
+
+    $fecha_desde_anterior = $inicio_anterior->format('Y-m-d');
+    $fecha_hasta_anterior = $fin_anterior->format('Y-m-d');
+
     $stats = [
-        'peso_total_mes' => 0,
-        'peso_total_mes_anterior' => 0,
-        'guias_mes' => 0,
-        'guias_mes_anterior' => 0,
-        'facturacion_mes' => 0,
-        'facturacion_mes_anterior' => 0,
-        'documentos_mes' => 0,
-        'facturas_mes' => 0,
-        'boletas_mes' => 0,
-        'recibos_mes' => 0,
-        'monto_facturas_mes' => 0,
-        'monto_boletas_mes' => 0,
-        'monto_recibos_mes' => 0
+        'peso_total_periodo' => 0,
+        'peso_total_periodo_anterior' => 0,
+        'guias_periodo' => 0,
+        'guias_periodo_anterior' => 0,
+        'facturacion_periodo' => 0,
+        'facturacion_periodo_anterior' => 0,
+        'documentos_periodo' => 0,
+        'facturas_periodo' => 0,
+        'boletas_periodo' => 0,
+        'recibos_periodo' => 0,
+        'monto_facturas_periodo' => 0,
+        'monto_boletas_periodo' => 0,
+        'monto_recibos_periodo' => 0,
+        'fecha_desde' => $fecha_desde,
+        'fecha_hasta' => $fecha_hasta,
+        'fecha_desde_anterior' => $fecha_desde_anterior,
+        'fecha_hasta_anterior' => $fecha_hasta_anterior
     ];
 
     try {
-        // Estadísticas del mes actual
-        $stmt = $conn->query("
+        // Estadísticas del período actual
+        $stmt = $conn->prepare("
             SELECT
                 COALESCE(SUM(peso_total), 0) as peso_total,
                 COALESCE(SUM(total_guias), 0) as guias_total,
@@ -685,37 +708,45 @@ function obtenerEstadisticasMensualesGenerales($conn) {
                 COALESCE(SUM(CASE WHEN tipo_documento = 'BOLETA' THEN total ELSE 0 END), 0) as monto_boletas,
                 COALESCE(SUM(CASE WHEN tipo_documento = 'RECIBO' THEN total ELSE 0 END), 0) as monto_recibos
             FROM documentos_facturacion
-            WHERE YEAR(creado_en) = YEAR(CURDATE())
-              AND MONTH(creado_en) = MONTH(CURDATE())
+            WHERE DATE(creado_en) >= :fecha_desde
+              AND DATE(creado_en) <= :fecha_hasta
         ");
-        $mesActual = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stats['peso_total_mes'] = $mesActual['peso_total'];
-        $stats['guias_mes'] = $mesActual['guias_total'];
-        $stats['facturacion_mes'] = $mesActual['facturacion_total'];
-        $stats['documentos_mes'] = $mesActual['documentos'];
-        $stats['facturas_mes'] = $mesActual['facturas'];
-        $stats['boletas_mes'] = $mesActual['boletas'];
-        $stats['recibos_mes'] = $mesActual['recibos'];
-        $stats['monto_facturas_mes'] = $mesActual['monto_facturas'];
-        $stats['monto_boletas_mes'] = $mesActual['monto_boletas'];
-        $stats['monto_recibos_mes'] = $mesActual['monto_recibos'];
+        $stmt->bindParam(':fecha_desde', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta', $fecha_hasta);
+        $stmt->execute();
+        $periodoActual = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Estadísticas del mes anterior (para comparación)
-        $stmt = $conn->query("
+        $stats['peso_total_periodo'] = $periodoActual['peso_total'];
+        $stats['guias_periodo'] = $periodoActual['guias_total'];
+        $stats['facturacion_periodo'] = $periodoActual['facturacion_total'];
+        $stats['documentos_periodo'] = $periodoActual['documentos'];
+        $stats['facturas_periodo'] = $periodoActual['facturas'];
+        $stats['boletas_periodo'] = $periodoActual['boletas'];
+        $stats['recibos_periodo'] = $periodoActual['recibos'];
+        $stats['monto_facturas_periodo'] = $periodoActual['monto_facturas'];
+        $stats['monto_boletas_periodo'] = $periodoActual['monto_boletas'];
+        $stats['monto_recibos_periodo'] = $periodoActual['monto_recibos'];
+
+        // Estadísticas del período anterior (para comparación)
+        $stmt = $conn->prepare("
             SELECT
                 COALESCE(SUM(peso_total), 0) as peso_total,
                 COALESCE(SUM(total_guias), 0) as guias_total,
                 COALESCE(SUM(total), 0) as facturacion_total
             FROM documentos_facturacion
-            WHERE YEAR(creado_en) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
-              AND MONTH(creado_en) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+            WHERE DATE(creado_en) >= :fecha_desde_anterior
+              AND DATE(creado_en) <= :fecha_hasta_anterior
         ");
-        $mesAnterior = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stats['peso_total_mes_anterior'] = $mesAnterior['peso_total'];
-        $stats['guias_mes_anterior'] = $mesAnterior['guias_total'];
-        $stats['facturacion_mes_anterior'] = $mesAnterior['facturacion_total'];
+        $stmt->bindParam(':fecha_desde_anterior', $fecha_desde_anterior);
+        $stmt->bindParam(':fecha_hasta_anterior', $fecha_hasta_anterior);
+        $stmt->execute();
+        $periodoAnterior = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stats['peso_total_periodo_anterior'] = $periodoAnterior['peso_total'];
+        $stats['guias_periodo_anterior'] = $periodoAnterior['guias_total'];
+        $stats['facturacion_periodo_anterior'] = $periodoAnterior['facturacion_total'];
 
     } catch(PDOException $e) {
         error_log("Error en obtenerEstadisticasMensualesGenerales: " . $e->getMessage());
@@ -724,54 +755,60 @@ function obtenerEstadisticasMensualesGenerales($conn) {
     return $stats;
 }
 
-// Función para obtener estadísticas detalladas de cada vendedor del mes actual
-function obtenerEstadisticasVendedoresMensual($conn) {
+// Función para obtener estadísticas detalladas de cada vendedor del período seleccionado
+function obtenerEstadisticasVendedoresMensual($conn, $fecha_desde = null, $fecha_hasta = null) {
+    // Valores por defecto
+    if ($fecha_desde === null || $fecha_hasta === null) {
+        $fecha_desde = date('Y-m-01');
+        $fecha_hasta = date('Y-m-t');
+    }
+
     $vendedores = [];
 
     try {
-        $stmt = $conn->query("
+        $stmt = $conn->prepare("
             SELECT
                 u.id,
                 CONCAT(u.nombre, ' ', u.apellido) as nombre_completo,
                 u.tipo as rol,
                 u.email,
 
-                -- PESO MENSUAL
+                -- PESO DEL PERÍODO
                 COALESCE(SUM(
                     CASE
-                        WHEN YEAR(df.creado_en) = YEAR(CURDATE())
-                         AND MONTH(df.creado_en) = MONTH(CURDATE())
+                        WHEN DATE(df.creado_en) >= :fecha_desde
+                         AND DATE(df.creado_en) <= :fecha_hasta
                         THEN df.peso_total
                         ELSE 0
                     END
-                ), 0) as peso_mes,
+                ), 0) as peso_periodo,
 
-                -- GUÍAS MENSUALES
+                -- GUÍAS DEL PERÍODO
                 COALESCE(SUM(
                     CASE
-                        WHEN YEAR(df.creado_en) = YEAR(CURDATE())
-                         AND MONTH(df.creado_en) = MONTH(CURDATE())
+                        WHEN DATE(df.creado_en) >= :fecha_desde2
+                         AND DATE(df.creado_en) <= :fecha_hasta2
                         THEN df.total_guias
                         ELSE 0
                     END
-                ), 0) as guias_mes,
+                ), 0) as guias_periodo,
 
-                -- FACTURACIÓN MENSUAL
+                -- FACTURACIÓN DEL PERÍODO
                 COALESCE(SUM(
                     CASE
-                        WHEN YEAR(df.creado_en) = YEAR(CURDATE())
-                         AND MONTH(df.creado_en) = MONTH(CURDATE())
+                        WHEN DATE(df.creado_en) >= :fecha_desde3
+                         AND DATE(df.creado_en) <= :fecha_hasta3
                         THEN df.total
                         ELSE 0
                     END
-                ), 0) as facturacion_mes,
+                ), 0) as facturacion_periodo,
 
-                -- CLIENTES NUEVOS DEL MES
+                -- CLIENTES NUEVOS DEL PERÍODO
                 COUNT(DISTINCT CASE
-                    WHEN YEAR(c.creado_en) = YEAR(CURDATE())
-                     AND MONTH(c.creado_en) = MONTH(CURDATE())
+                    WHEN DATE(c.creado_en) >= :fecha_desde4
+                     AND DATE(c.creado_en) <= :fecha_hasta4
                     THEN c.id
-                END) as clientes_nuevos_mes,
+                END) as clientes_nuevos_periodo,
 
                 -- TOTALES HISTÓRICOS
                 COALESCE(SUM(df.peso_total), 0) as peso_total,
@@ -783,8 +820,18 @@ function obtenerEstadisticasVendedoresMensual($conn) {
             LEFT JOIN documentos_facturacion df ON u.id = df.creado_por
             LEFT JOIN clientes c ON u.id = c.creado_por
             GROUP BY u.id, u.nombre, u.apellido, u.tipo, u.email
-            ORDER BY facturacion_mes DESC
+            ORDER BY facturacion_periodo DESC
         ");
+
+        $stmt->bindParam(':fecha_desde', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta', $fecha_hasta);
+        $stmt->bindParam(':fecha_desde2', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta2', $fecha_hasta);
+        $stmt->bindParam(':fecha_desde3', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta3', $fecha_hasta);
+        $stmt->bindParam(':fecha_desde4', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta4', $fecha_hasta);
+        $stmt->execute();
 
         $vendedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -793,5 +840,46 @@ function obtenerEstadisticasVendedoresMensual($conn) {
     }
 
     return $vendedores;
+}
+
+// Función para obtener etiqueta legible del período seleccionado
+function obtenerEtiquetaPeriodo($tipo_filtro, $fecha_desde, $fecha_hasta) {
+    $meses = [
+        1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+        5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+        9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+    ];
+
+    switch ($tipo_filtro) {
+        case 'mes_actual':
+            return $meses[date('n')] . ' ' . date('Y');
+
+        case 'mes_pasado':
+            $fecha = new DateTime('first day of last month');
+            return $meses[(int)$fecha->format('n')] . ' ' . $fecha->format('Y');
+
+        case 'ultimos_30':
+            return 'Últimos 30 días';
+
+        case 'ultimos_90':
+            return 'Últimos 3 meses';
+
+        case 'ultimos_180':
+            return 'Últimos 6 meses';
+
+        case 'anio_actual':
+            return 'Año ' . date('Y');
+
+        case 'anio_pasado':
+            return 'Año ' . (date('Y') - 1);
+
+        case 'personalizado':
+            $desde = new DateTime($fecha_desde);
+            $hasta = new DateTime($fecha_hasta);
+            return $desde->format('d/m/Y') . ' - ' . $hasta->format('d/m/Y');
+
+        default:
+            return 'Período personalizado';
+    }
 }
 ?>

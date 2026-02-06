@@ -17,27 +17,83 @@ $conn = $database->getConnection();
 $tipo_usuario = obtenerTipoUsuario();
 $nombre_usuario = obtenerNombreUsuario();
 
+// PROCESAR FILTRO DE FECHA
+$tipo_filtro = $_GET['filtro'] ?? 'mes_actual';
+$fecha_desde_custom = $_GET['fecha_desde'] ?? null;
+$fecha_hasta_custom = $_GET['fecha_hasta'] ?? null;
+
+$fecha_desde = null;
+$fecha_hasta = null;
+
+switch ($tipo_filtro) {
+    case 'mes_actual':
+        $fecha_desde = date('Y-m-01');
+        $fecha_hasta = date('Y-m-t');
+        break;
+
+    case 'mes_pasado':
+        $fecha_desde = date('Y-m-01', strtotime('first day of last month'));
+        $fecha_hasta = date('Y-m-t', strtotime('last day of last month'));
+        break;
+
+    case 'ultimos_30':
+        $fecha_desde = date('Y-m-d', strtotime('-30 days'));
+        $fecha_hasta = date('Y-m-d');
+        break;
+
+    case 'ultimos_90':
+        $fecha_desde = date('Y-m-d', strtotime('-90 days'));
+        $fecha_hasta = date('Y-m-d');
+        break;
+
+    case 'ultimos_180':
+        $fecha_desde = date('Y-m-d', strtotime('-180 days'));
+        $fecha_hasta = date('Y-m-d');
+        break;
+
+    case 'anio_actual':
+        $fecha_desde = date('Y-01-01');
+        $fecha_hasta = date('Y-12-31');
+        break;
+
+    case 'anio_pasado':
+        $anio_pasado = date('Y') - 1;
+        $fecha_desde = $anio_pasado . '-01-01';
+        $fecha_hasta = $anio_pasado . '-12-31';
+        break;
+
+    case 'personalizado':
+        if ($fecha_desde_custom && $fecha_hasta_custom) {
+            $fecha_desde = $fecha_desde_custom;
+            $fecha_hasta = $fecha_hasta_custom;
+        } else {
+            // Si no hay fechas válidas, volver a mes actual
+            $tipo_filtro = 'mes_actual';
+            $fecha_desde = date('Y-m-01');
+            $fecha_hasta = date('Y-m-t');
+        }
+        break;
+
+    default:
+        $fecha_desde = date('Y-m-01');
+        $fecha_hasta = date('Y-m-t');
+}
+
+// Obtener etiqueta del período
+$etiqueta_periodo = obtenerEtiquetaPeriodo($tipo_filtro, $fecha_desde, $fecha_hasta);
+
 // Obtener estadísticas mensuales y de vendedores (solo para ADMIN)
 $estadisticas_mensuales = [];
 $vendedores_mensuales = [];
 $stats_basicas = [];
 
 if ($tipo_usuario === 'ADMIN') {
-    $estadisticas_mensuales = obtenerEstadisticasMensualesGenerales($conn);
-    $vendedores_mensuales = obtenerEstadisticasVendedoresMensual($conn);
+    $estadisticas_mensuales = obtenerEstadisticasMensualesGenerales($conn, $fecha_desde, $fecha_hasta);
+    $vendedores_mensuales = obtenerEstadisticasVendedoresMensual($conn, $fecha_desde, $fecha_hasta);
 } else {
     // Estadísticas básicas para usuarios no admin
     $stats_basicas = obtenerEstadisticas($conn, $tipo_usuario);
 }
-
-// Obtener nombre del mes actual en español
-$meses = [
-    1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
-    5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
-    9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
-];
-$mes_actual = $meses[date('n')];
-$anio_actual = date('Y');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -351,6 +407,145 @@ $anio_actual = date('Y');
             gap: 20px;
         }
 
+        /* FILTRO DE PERÍODO */
+        .filter-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+
+        .filter-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f5f7fa;
+        }
+
+        .filter-header h3 {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .quick-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .filter-option:hover {
+            border-color: #00509d;
+            background: #f0f7ff;
+        }
+
+        .filter-option.active {
+            border-color: #00509d;
+            background: #e8f4f8;
+        }
+
+        .filter-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #00509d;
+        }
+
+        .filter-option input[type="radio"]:checked ~ span {
+            color: #00509d;
+            font-weight: 600;
+        }
+
+        .filter-option span {
+            font-size: 0.95rem;
+            color: #555;
+            user-select: none;
+        }
+
+        .custom-dates {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .date-input {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .date-input label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .date-input input[type="date"] {
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .date-input input[type="date"]:focus {
+            outline: none;
+            border-color: #00509d;
+        }
+
+        .btn-apply {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #00509d 0%, #00296B 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: fit-content;
+        }
+
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 80, 157, 0.3);
+        }
+
+        .btn-apply box-icon {
+            width: 20px;
+            height: 20px;
+        }
+
         /* RESPONSIVE */
         @media (max-width: 768px) {
             .main-content {
@@ -384,6 +579,20 @@ $anio_actual = date('Y');
             th, td {
                 padding: 10px;
             }
+
+            .quick-filters {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .custom-dates {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-apply {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -413,82 +622,168 @@ $anio_actual = date('Y');
                 <!-- DASHBOARD ADMINISTRADOR -->
                 <!-- ============================================ -->
 
+                <!-- FORMULARIO DE FILTRO -->
+                <div class="filter-card">
+                    <form method="GET" action="dashboard.php" id="filterForm">
+                        <div class="filter-header">
+                            <box-icon name='filter-alt' type='solid' color='#2c3e50'></box-icon>
+                            <h3>Filtrar por Período</h3>
+                        </div>
+
+                        <div class="filter-options">
+                            <!-- Filtros Rápidos -->
+                            <div class="quick-filters">
+                                <label class="filter-option <?php echo $tipo_filtro === 'mes_actual' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="mes_actual"
+                                           <?php echo $tipo_filtro === 'mes_actual' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                    <span>Este mes</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'mes_pasado' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="mes_pasado"
+                                           <?php echo $tipo_filtro === 'mes_pasado' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                    <span>Mes pasado</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'ultimos_30' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="ultimos_30"
+                                           <?php echo $tipo_filtro === 'ultimos_30' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                    <span>Últimos 30 días</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'ultimos_90' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="ultimos_90"
+                                           <?php echo $tipo_filtro === 'ultimos_90' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                    <span>Últimos 3 meses</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'anio_actual' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="anio_actual"
+                                           <?php echo $tipo_filtro === 'anio_actual' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                    <span>Este año</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'anio_pasado' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="anio_pasado"
+                                           <?php echo $tipo_filtro === 'anio_pasado' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                    <span>Año pasado</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'personalizado' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="personalizado"
+                                           <?php echo $tipo_filtro === 'personalizado' ? 'checked' : ''; ?>
+                                           onchange="toggleCustomDates(true);">
+                                    <span>Personalizado</span>
+                                </label>
+                            </div>
+
+                            <!-- Fechas Personalizadas -->
+                            <div class="custom-dates" id="customDates" style="display: <?php echo $tipo_filtro === 'personalizado' ? 'flex' : 'none'; ?>;">
+                                <div class="date-input">
+                                    <label>Desde:</label>
+                                    <input type="date" name="fecha_desde"
+                                           value="<?php echo $fecha_desde ?? ''; ?>"
+                                           max="<?php echo date('Y-m-d'); ?>">
+                                </div>
+
+                                <div class="date-input">
+                                    <label>Hasta:</label>
+                                    <input type="date" name="fecha_hasta"
+                                           value="<?php echo $fecha_hasta ?? ''; ?>"
+                                           max="<?php echo date('Y-m-d'); ?>">
+                                </div>
+
+                                <button type="submit" class="btn-apply">
+                                    <box-icon name='check' color='white'></box-icon>
+                                    Aplicar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- TÍTULO DE SECCIÓN -->
                 <h2 class="section-title">
                     <box-icon name='line-chart' type='solid' color='#2c3e50'></box-icon>
-                    Métricas del Mes - <?php echo $mes_actual . ' ' . $anio_actual; ?>
+                    Métricas del Período - <?php echo $etiqueta_periodo; ?>
                 </h2>
 
-                <!-- MÉTRICAS MENSUALES -->
+                <!-- MÉTRICAS DEL PERÍODO -->
                 <div class="stats-grid">
-                    <!-- 1. PESO TOTAL DEL MES -->
+                    <!-- 1. PESO TOTAL DEL PERÍODO -->
                     <div class="stat-card">
                         <div class="stat-icon blue">
                             <box-icon name='package' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo number_format($estadisticas_mensuales['peso_total_mes'], 2); ?> kg</h3>
-                            <p>Peso Total del Mes</p>
+                            <h3><?php echo number_format($estadisticas_mensuales['peso_total_periodo'], 2); ?> kg</h3>
+                            <p>Peso Total del Período</p>
                             <?php
                             $variacion_peso = 0;
-                            if ($estadisticas_mensuales['peso_total_mes_anterior'] > 0) {
-                                $variacion_peso = (($estadisticas_mensuales['peso_total_mes'] - $estadisticas_mensuales['peso_total_mes_anterior']) / $estadisticas_mensuales['peso_total_mes_anterior']) * 100;
-                            } elseif ($estadisticas_mensuales['peso_total_mes'] > 0) {
+                            if ($estadisticas_mensuales['peso_total_periodo_anterior'] > 0) {
+                                $variacion_peso = (($estadisticas_mensuales['peso_total_periodo'] - $estadisticas_mensuales['peso_total_periodo_anterior']) / $estadisticas_mensuales['peso_total_periodo_anterior']) * 100;
+                            } elseif ($estadisticas_mensuales['peso_total_periodo'] > 0) {
                                 $variacion_peso = 100;
                             }
                             $clase_peso = $variacion_peso >= 0 ? 'positive' : 'negative';
                             $icono_peso = $variacion_peso >= 0 ? '↗' : '↘';
                             ?>
                             <span class="stat-comparison <?php echo $clase_peso; ?>">
-                                <?php echo $icono_peso; ?> <?php echo number_format(abs($variacion_peso), 1); ?>% vs mes pasado
+                                <?php echo $icono_peso; ?> <?php echo number_format(abs($variacion_peso), 1); ?>% vs período anterior
                             </span>
                         </div>
                     </div>
 
-                    <!-- 2. GUÍAS TOTALES DEL MES -->
+                    <!-- 2. GUÍAS TOTALES DEL PERÍODO -->
                     <div class="stat-card">
                         <div class="stat-icon green">
                             <box-icon name='file-blank' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo number_format($estadisticas_mensuales['guias_mes']); ?></h3>
-                            <p>Guías Totales del Mes</p>
+                            <h3><?php echo number_format($estadisticas_mensuales['guias_periodo']); ?></h3>
+                            <p>Guías Totales del Período</p>
                             <?php
                             $variacion_guias = 0;
-                            if ($estadisticas_mensuales['guias_mes_anterior'] > 0) {
-                                $variacion_guias = (($estadisticas_mensuales['guias_mes'] - $estadisticas_mensuales['guias_mes_anterior']) / $estadisticas_mensuales['guias_mes_anterior']) * 100;
-                            } elseif ($estadisticas_mensuales['guias_mes'] > 0) {
+                            if ($estadisticas_mensuales['guias_periodo_anterior'] > 0) {
+                                $variacion_guias = (($estadisticas_mensuales['guias_periodo'] - $estadisticas_mensuales['guias_periodo_anterior']) / $estadisticas_mensuales['guias_periodo_anterior']) * 100;
+                            } elseif ($estadisticas_mensuales['guias_periodo'] > 0) {
                                 $variacion_guias = 100;
                             }
                             $clase_guias = $variacion_guias >= 0 ? 'positive' : 'negative';
                             $icono_guias = $variacion_guias >= 0 ? '↗' : '↘';
                             ?>
                             <span class="stat-comparison <?php echo $clase_guias; ?>">
-                                <?php echo $icono_guias; ?> <?php echo number_format(abs($variacion_guias), 1); ?>% vs mes pasado
+                                <?php echo $icono_guias; ?> <?php echo number_format(abs($variacion_guias), 1); ?>% vs período anterior
                             </span>
                         </div>
                     </div>
 
-                    <!-- 3. FACTURACIÓN MENSUAL -->
+                    <!-- 3. FACTURACIÓN DEL PERÍODO -->
                     <div class="stat-card">
                         <div class="stat-icon purple">
                             <box-icon name='dollar-circle' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3>$<?php echo number_format($estadisticas_mensuales['facturacion_mes'], 2); ?></h3>
-                            <p>Facturación Total del Mes</p>
+                            <h3>$<?php echo number_format($estadisticas_mensuales['facturacion_periodo'], 2); ?></h3>
+                            <p>Facturación Total del Período</p>
                             <?php
                             $variacion_fact = 0;
-                            if ($estadisticas_mensuales['facturacion_mes_anterior'] > 0) {
-                                $variacion_fact = (($estadisticas_mensuales['facturacion_mes'] - $estadisticas_mensuales['facturacion_mes_anterior']) / $estadisticas_mensuales['facturacion_mes_anterior']) * 100;
-                            } elseif ($estadisticas_mensuales['facturacion_mes'] > 0) {
+                            if ($estadisticas_mensuales['facturacion_periodo_anterior'] > 0) {
+                                $variacion_fact = (($estadisticas_mensuales['facturacion_periodo'] - $estadisticas_mensuales['facturacion_periodo_anterior']) / $estadisticas_mensuales['facturacion_periodo_anterior']) * 100;
+                            } elseif ($estadisticas_mensuales['facturacion_periodo'] > 0) {
                                 $variacion_fact = 100;
                             }
                             $clase_fact = $variacion_fact >= 0 ? 'positive' : 'negative';
                             $icono_fact = $variacion_fact >= 0 ? '↗' : '↘';
                             ?>
                             <span class="stat-comparison <?php echo $clase_fact; ?>">
-                                <?php echo $icono_fact; ?> <?php echo number_format(abs($variacion_fact), 1); ?>% vs mes pasado
+                                <?php echo $icono_fact; ?> <?php echo number_format(abs($variacion_fact), 1); ?>% vs período anterior
                             </span>
                         </div>
                     </div>
@@ -499,12 +794,12 @@ $anio_actual = date('Y');
                             <box-icon name='receipt' type='solid' color='white'></box-icon>
                         </div>
                         <div class="stat-details">
-                            <h3><?php echo number_format($estadisticas_mensuales['documentos_mes']); ?></h3>
+                            <h3><?php echo number_format($estadisticas_mensuales['documentos_periodo']); ?></h3>
                             <p>Documentos Generados</p>
                             <span style="font-size: 0.85rem; color: #666;">
-                                <?php echo $estadisticas_mensuales['facturas_mes']; ?> Facturas ·
-                                <?php echo $estadisticas_mensuales['boletas_mes']; ?> Boletas ·
-                                <?php echo $estadisticas_mensuales['recibos_mes']; ?> Recibos
+                                <?php echo $estadisticas_mensuales['facturas_periodo']; ?> Facturas ·
+                                <?php echo $estadisticas_mensuales['boletas_periodo']; ?> Boletas ·
+                                <?php echo $estadisticas_mensuales['recibos_periodo']; ?> Recibos
                             </span>
                         </div>
                     </div>
@@ -515,7 +810,7 @@ $anio_actual = date('Y');
                     <div class="card-header">
                         <h3>
                             <box-icon name='group' type='solid' color='#2c3e50'></box-icon>
-                            Rendimiento de Vendedores - <?php echo $mes_actual . ' ' . $anio_actual; ?>
+                            Rendimiento de Vendedores - <?php echo $etiqueta_periodo; ?>
                         </h3>
                     </div>
                     <div class="table-container">
@@ -553,22 +848,22 @@ $anio_actual = date('Y');
                                         </span>
                                     </td>
                                     <td class="text-right">
-                                        <strong><?php echo number_format($vendedor['peso_mes'], 2); ?> kg</strong>
+                                        <strong><?php echo number_format($vendedor['peso_periodo'], 2); ?> kg</strong>
                                         <small>Total: <?php echo number_format($vendedor['peso_total'], 2); ?> kg</small>
                                     </td>
                                     <td class="text-right">
-                                        <strong><?php echo number_format($vendedor['guias_mes']); ?></strong>
+                                        <strong><?php echo number_format($vendedor['guias_periodo']); ?></strong>
                                         <small>Total: <?php echo number_format($vendedor['guias_total']); ?></small>
                                     </td>
                                     <td class="text-right">
-                                        <strong style="color: #00509d; font-size: 1.05rem;">$<?php echo number_format($vendedor['facturacion_mes'], 2); ?></strong>
+                                        <strong style="color: #00509d; font-size: 1.05rem;">$<?php echo number_format($vendedor['facturacion_periodo'], 2); ?></strong>
                                         <small>Total: $<?php echo number_format($vendedor['facturacion_total'], 2); ?></small>
                                     </td>
                                     <td class="text-right">
-                                        <?php if ($vendedor['clientes_nuevos_mes'] > 0): ?>
+                                        <?php if ($vendedor['clientes_nuevos_periodo'] > 0): ?>
                                         <span class="badge-new-clients">
                                             <box-icon name='user-plus' type='solid' size='16px' color='#27ae60'></box-icon>
-                                            +<?php echo $vendedor['clientes_nuevos_mes']; ?>
+                                            +<?php echo $vendedor['clientes_nuevos_periodo']; ?>
                                         </span>
                                         <?php else: ?>
                                         <span style="color: #95a5a6;">0</span>
@@ -633,5 +928,48 @@ $anio_actual = date('Y');
     </main>
 
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
+    <script>
+        function toggleCustomDates(show) {
+            const customDates = document.getElementById('customDates');
+            if (show) {
+                customDates.style.display = 'flex';
+            } else {
+                customDates.style.display = 'none';
+            }
+        }
+
+        // Validar fechas antes de enviar
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterForm = document.getElementById('filterForm');
+            if (filterForm) {
+                filterForm.addEventListener('submit', function(e) {
+                    const tipoFiltro = document.querySelector('input[name="filtro"]:checked');
+
+                    if (!tipoFiltro) {
+                        e.preventDefault();
+                        alert('Por favor selecciona un tipo de filtro');
+                        return false;
+                    }
+
+                    if (tipoFiltro.value === 'personalizado') {
+                        const fechaDesde = document.querySelector('input[name="fecha_desde"]').value;
+                        const fechaHasta = document.querySelector('input[name="fecha_hasta"]').value;
+
+                        if (!fechaDesde || !fechaHasta) {
+                            e.preventDefault();
+                            alert('Por favor selecciona ambas fechas para el rango personalizado');
+                            return false;
+                        }
+
+                        if (fechaDesde > fechaHasta) {
+                            e.preventDefault();
+                            alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
+                            return false;
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
