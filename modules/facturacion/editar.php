@@ -37,19 +37,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cliente_id = (int)$_POST['cliente_id'];
     $tarifa_aplicada = $_POST['tarifa_aplicada'] ?? 'TARIFA_1';
 
-    // Datos de cálculo
-    $peso_total = (float)$_POST['peso_total'];
-    $peso_ajustado_calculado = (float)($_POST['peso_ajustado_calculado'] ?? 0);
+    // Datos de cálculo con validación mejorada
+    $peso_total = filter_var($_POST['peso_total'], FILTER_VALIDATE_FLOAT);
+    $peso_ajustado_calculado = filter_var($_POST['peso_ajustado_calculado'] ?? 0, FILTER_VALIDATE_FLOAT);
     $total_paquetes = (int)$_POST['total_paquetes'];
     $total_guias = (int)$_POST['total_guias'];
     $cantidad_cambio_consignatario = (int)($_POST['cantidad_cambio_consignatario'] ?? 0);
     $cantidad_reempaque = (int)($_POST['cantidad_reempaque'] ?? 0);
     $envio_provincia = $_POST['envio_provincia'] ?? 'NO';
-    $gastos_adicionales = (float)($_POST['gastos_adicionales'] ?? 0);
+    $gastos_adicionales = filter_var($_POST['gastos_adicionales'] ?? 0, FILTER_VALIDATE_FLOAT);
     $detalle_gastos_adicionales = $_POST['detalle_gastos_adicionales'] ?? '';
-    $descuento = (float)($_POST['descuento'] ?? 0);
+    $descuento = filter_var($_POST['descuento'] ?? 0, FILTER_VALIDATE_FLOAT);
     $detalle_descuento = $_POST['detalle_descuento'] ?? '';
     $canal_aduanas = $_POST['canal_aduanas'] ?? '';
+
+    // Validar conversiones
+    if ($peso_total === false) $peso_total = 0;
+    if ($gastos_adicionales === false) $gastos_adicionales = 0;
+    if ($descuento === false) $descuento = 0;
+    if ($peso_ajustado_calculado === false) $peso_ajustado_calculado = 0;
 
     // Obtener modo de creación del documento original
     $modo_creacion = $documento['modo_creacion'] ?? 'MANUAL';
@@ -92,43 +98,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Calcular costos
-            // 1. Costo por peso - aplicar lógica según modo de creación
-            if ($modo_creacion === 'DESDE_GUIA' && $peso_ajustado_calculado > 0) {
-                // Modo DESDE_GUIA: usar peso ajustado directamente (ya se ajustó al crear)
-                $costo_peso = $peso_ajustado_calculado * $tarifa_peso;
+            // 1. Costo por peso - RECALCULAR desde guías originales para garantizar consistencia
+            if ($modo_creacion === 'DESDE_GUIA' && !empty($documento['guias_asociadas'])) {
+                // Obtener guías asociadas ORIGINALES
+                $guias_ids_original = explode(',', $documento['guias_asociadas']);
+                $placeholders = implode(',', array_fill(0, count($guias_ids_original), '?'));
+
+                $stmt_guias = $conn->prepare("SELECT peso_kg FROM guias_masivas WHERE id IN ($placeholders)");
+                $stmt_guias->execute($guias_ids_original);
+                $guias_pesos = $stmt_guias->fetchAll(PDO::FETCH_COLUMN);
+
+                // Recalcular peso ajustado desde las guías ORIGINALES (no del form)
+                $peso_ajustado_recalculado = 0;
+                foreach ($guias_pesos as $peso) {
+                    $peso_ajustado_recalculado += ($peso < 1) ? 1.0 : floatval($peso);
+                }
+
+                // Usar el peso ajustado RECALCULADO (garantiza consistencia)
+                $costo_peso = round($peso_ajustado_recalculado * $tarifa_peso, 2);
+
+                // Actualizar la variable para guardarla
+                $peso_ajustado_calculado = $peso_ajustado_recalculado;
             } else {
                 // Modo MANUAL: aplicar regla de peso mínimo (< 1kg = tarifa mínima, >= 1kg = peso x tarifa)
-                $costo_peso = ($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso);
+                $costo_peso = round(($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso), 2);
             }
 
             // 2. Desaduanaje (tarifa variable según selección)
-            $costo_desaduanaje = $total_guias * $tarifa_desaduanaje;
+            $costo_desaduanaje = round($total_guias * $tarifa_desaduanaje, 2);
 
             // 3. Cambio de consignatario ($3 x cantidad)
-            $costo_cambio_consignatario = $cantidad_cambio_consignatario * 3.00;
+            $costo_cambio_consignatario = round($cantidad_cambio_consignatario * 3.00, 2);
 
             // 4. Reempaque ($5 x cantidad)
-            $costo_reempaque = $cantidad_reempaque * 5.00;
+            $costo_reempaque = round($cantidad_reempaque * 5.00, 2);
 
             // 5. Envío a provincia ($3 si aplica)
             $costo_envio_provincia = ($envio_provincia === 'SI') ? 3.00 : 0.00;
 
-            // 6. Pendiente de pago - USAR EL VALOR GUARDADO ORIGINALMENTE
-            // NO recalcular porque no sabemos qué pedidos específicos se incluyeron
-            // Solo permitir que el usuario ajuste manualmente si es necesario
-            $pendiente_pago = $documento['pendiente_pago'];
+            // 6. Pendiente de pago - Permitir ajuste manual
+            $pendiente_pago_nuevo = filter_var($_POST['pendiente_pago_ajuste'] ?? $documento['pendiente_pago'], FILTER_VALIDATE_FLOAT);
+            if ($pendiente_pago_nuevo === false || $pendiente_pago_nuevo < 0) {
+                $pendiente_pago = $documento['pendiente_pago']; // Mantener original si inválido
+            } else {
+                $pendiente_pago = $pendiente_pago_nuevo;
+            }
 
-            // Calcular subtotal
-            $subtotal = $costo_peso + $costo_desaduanaje + $costo_cambio_consignatario +
-                       $costo_reempaque + $costo_envio_provincia + $pendiente_pago + $gastos_adicionales - $descuento;
+            // Calcular subtotal con redondeo
+            $subtotal = round($costo_peso + $costo_desaduanaje + $costo_cambio_consignatario +
+                       $costo_reempaque + $costo_envio_provincia + $pendiente_pago + $gastos_adicionales - $descuento, 2);
 
-            // Calcular IGV y total
+            // Calcular IGV y total con redondeo
             if ($tipo_documento === 'FACTURA' || $tipo_documento === 'BOLETA') {
-                $igv = $subtotal * 0.18;
-                $total = $subtotal + $igv;
+                $igv = round($subtotal * 0.18, 2);
+                $total = round($subtotal + $igv, 2);
             } else {
                 $igv = 0.00;
-                $total = $subtotal;
+                $total = round($subtotal, 2);
                 $subtotal = 0.00;
             }
 
@@ -316,6 +342,15 @@ $tipo_usuario = obtenerTipoUsuario();
             <div class="info-box">
                 <strong>ℹ️ Nota:</strong> El número de documento no se puede cambiar. Para modificar el tipo, créelo nuevamente.
             </div>
+
+            <?php if ($documento['modo_creacion'] === 'DESDE_GUIA'): ?>
+            <div class="alert" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                <strong>⚠️ Advertencia - Cambio de Tarifa:</strong><br>
+                Este documento fue creado desde guías. Si cambia la tarifa, el costo se recalculará automáticamente
+                usando el peso ajustado original de las guías. El total puede variar respecto al monto actual.
+            </div>
+            <?php endif; ?>
+
             <?php if (!empty($errores)): ?>
             <div class="alert alert-danger">
                 <strong>⚠️ Errores encontrados:</strong>
@@ -431,10 +466,14 @@ $tipo_usuario = obtenerTipoUsuario();
                             <input type="hidden" name="envio_provincia" id="envio_provincia" value="<?php echo $documento['envio_provincia']; ?>">
                         </div>
                         <div class="form-group">
-                            <label>Pendiente de Pago (No Modificable)</label>
-                            <input type="text" class="form-control readonly-field" id="pendiente_pago_display"
-                                   value="$<?php echo number_format($documento['pendiente_pago'], 2); ?>" readonly>
-                            <small class="info-text">Monto guardado originalmente. No se puede cambiar al editar.</small>
+                            <label>Pendiente de Pago</label>
+                            <input type="number" class="form-control" name="pendiente_pago_ajuste"
+                                   id="pendiente_pago_ajuste" step="0.01" min="0"
+                                   value="<?php echo $documento['pendiente_pago']; ?>">
+                            <small class="info-text">
+                                Monto original: $<?php echo number_format($documento['pendiente_pago'], 2); ?>.
+                                Puede ajustar manualmente si es necesario.
+                            </small>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -519,7 +558,6 @@ $tipo_usuario = obtenerTipoUsuario();
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
     <script>
         // Variables del documento
-        const pendientePago = <?php echo $documento['pendiente_pago']; ?>; // CONSTANTE - no cambia al editar
         const tipoDoc = '<?php echo $documento['tipo_documento']; ?>';
         const modoCreacion = '<?php echo $documento['modo_creacion'] ?? 'MANUAL'; ?>';
         const pesoAjustadoOriginal = <?php echo $documento['peso_ajustado_calculado'] ?? 0; ?>;
@@ -560,30 +598,40 @@ $tipo_usuario = obtenerTipoUsuario();
             }
 
             const totalGuias = parseInt(document.getElementById('total_guias').value) || 0;
-            const costoDesaduanaje = totalGuias * tarifaDesaduanaje;
+            let costoDesaduanaje = totalGuias * tarifaDesaduanaje;
             const cantidadCambio = parseInt(document.getElementById('cantidad_cambio_consignatario').value) || 0;
-            const costoCambio = cantidadCambio * 3.00;
+            let costoCambio = cantidadCambio * 3.00;
             const cantidadReempaque = parseInt(document.getElementById('cantidad_reempaque').value) || 0;
-            const costoReempaque = cantidadReempaque * 5.00;
+            let costoReempaque = cantidadReempaque * 5.00;
             const envioCheck = document.getElementById('envio_provincia_check').checked;
             const costoEnvio = envioCheck ? 3.00 : 0.00;
             document.getElementById('envio_provincia').value = envioCheck ? 'SI' : 'NO';
             const gastosAdicionales = parseFloat(document.getElementById('gastos_adicionales').value) || 0;
             const descuento = parseFloat(document.getElementById('descuento').value) || 0;
 
-            // Calcular subtotal - usar pendientePago constante (valor guardado originalmente)
+            // Obtener pendiente de pago del campo editable
+            const pendientePago = parseFloat(document.getElementById('pendiente_pago_ajuste').value) || 0;
+
+            // REDONDEAR todos los valores igual que PHP (2 decimales)
+            costoPeso = Math.round(costoPeso * 100) / 100;
+            costoDesaduanaje = Math.round(costoDesaduanaje * 100) / 100;
+            costoCambio = Math.round(costoCambio * 100) / 100;
+            costoReempaque = Math.round(costoReempaque * 100) / 100;
+
+            // Calcular subtotal con redondeo
             let subtotal = costoPeso + costoDesaduanaje + costoCambio + costoReempaque +
                           costoEnvio + pendientePago + gastosAdicionales - descuento;
+            subtotal = Math.round(subtotal * 100) / 100;
 
             let igv = 0, total = 0;
             if (tipoDoc === 'FACTURA' || tipoDoc === 'BOLETA') {
-                igv = subtotal * 0.18;
-                total = subtotal + igv;
+                igv = Math.round(subtotal * 0.18 * 100) / 100;
+                total = Math.round((subtotal + igv) * 100) / 100;
                 document.getElementById('subtotal_row').style.display = 'block';
                 document.getElementById('subtotal_display').textContent = '$' + subtotal.toFixed(2);
                 document.getElementById('igv_display').textContent = '$' + igv.toFixed(2);
             } else {
-                total = subtotal;
+                total = Math.round(subtotal * 100) / 100;
                 document.getElementById('subtotal_row').style.display = 'none';
             }
 
@@ -599,15 +647,12 @@ $tipo_usuario = obtenerTipoUsuario();
         document.getElementById('envio_provincia_check').addEventListener('change', calcularTotales);
         document.getElementById('gastos_adicionales').addEventListener('input', calcularTotales);
         document.getElementById('descuento').addEventListener('input', calcularTotales);
+        document.getElementById('pendiente_pago_ajuste').addEventListener('input', calcularTotales);
 
         // Event listeners para cambio de tarifa
         document.getElementById('tarifa_1').addEventListener('change', calcularTotales);
         document.getElementById('tarifa_2').addEventListener('change', calcularTotales);
         document.getElementById('tarifa_3').addEventListener('change', calcularTotales);
-
-        // NOTA: NO hay listener para cambio de cliente porque:
-        // - El pendiente de pago NO se puede modificar al editar
-        // - Se usa el valor guardado originalmente en el documento
 
         // Cargar valores iniciales al cargar la página
         window.addEventListener('load', function() {

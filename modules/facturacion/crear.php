@@ -58,17 +58,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Datos de cálculo
-    $peso_total = (float)$_POST['peso_total'];
-    $peso_ajustado_calculado = (float)($_POST['peso_ajustado_calculado'] ?? 0);
+    // Datos de cálculo con validación mejorada
+    $peso_total = filter_var($_POST['peso_total'], FILTER_VALIDATE_FLOAT);
+    $peso_ajustado_calculado = filter_var($_POST['peso_ajustado_calculado'] ?? 0, FILTER_VALIDATE_FLOAT);
     $total_paquetes = (int)$_POST['total_paquetes'];
     $total_guias = (int)$_POST['total_guias'];
     $cantidad_cambio_consignatario = (int)($_POST['cantidad_cambio_consignatario'] ?? 0);
     $cantidad_reempaque = (int)($_POST['cantidad_reempaque'] ?? 0);
     $envio_provincia = $_POST['envio_provincia'] ?? 'NO';
-    $gastos_adicionales = (float)($_POST['gastos_adicionales'] ?? 0);
+    $gastos_adicionales = filter_var($_POST['gastos_adicionales'] ?? 0, FILTER_VALIDATE_FLOAT);
     $detalle_gastos_adicionales = $_POST['detalle_gastos_adicionales'] ?? '';
-    $descuento = (float)($_POST['descuento'] ?? 0);
+    $descuento = filter_var($_POST['descuento'] ?? 0, FILTER_VALIDATE_FLOAT);
     $detalle_descuento = $_POST['detalle_descuento'] ?? '';
     $canal_aduanas = $_POST['canal_aduanas'] ?? '';
 
@@ -84,8 +84,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errores[] = "Debe seleccionar un cliente";
     }
 
-    if ($peso_total <= 0) {
-        $errores[] = "El peso total debe ser mayor a 0";
+    if ($peso_total === false || $peso_total <= 0) {
+        $errores[] = "El peso total debe ser un número válido mayor a 0";
+    }
+
+    if ($gastos_adicionales === false) $gastos_adicionales = 0;
+    if ($descuento === false) $descuento = 0;
+    if ($peso_ajustado_calculado === false) $peso_ajustado_calculado = 0;
+
+    if (empty($errores)) {
+        // Validar si el cliente tiene pedidos pendientes (debe seleccionar al menos uno)
+        $stmt_check_pedidos = $conn->prepare("
+            SELECT COUNT(*)
+            FROM recibos_pedidos
+            WHERE cliente_id = :cliente_id AND pendiente_pago = 'SI' AND monto_pendiente > 0
+        ");
+        $stmt_check_pedidos->bindParam(':cliente_id', $cliente_id);
+        $stmt_check_pedidos->execute();
+        $tiene_pedidos_pendientes = $stmt_check_pedidos->fetchColumn() > 0;
+
+        // Si tiene pedidos pendientes, debe seleccionar al menos uno
+        if ($tiene_pedidos_pendientes && empty($pedidos_seleccionados)) {
+            $errores[] = "Este cliente tiene pedidos pendientes de pago. Debe seleccionar al menos uno para incluir en la factura.";
+        }
     }
 
     if (empty($errores)) {
@@ -119,22 +140,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Calcular costos
             // 1. Costo por peso
-            if ($modo_creacion === 'DESDE_GUIA' && $peso_ajustado_calculado > 0) {
-                // Modo DESDE_GUIA: usar peso ajustado directamente (ya se ajustó en frontend)
-                $costo_peso = $peso_ajustado_calculado * $tarifa_peso;
+            if ($modo_creacion === 'DESDE_GUIA' && !empty($guias_asociadas)) {
+                // RECALCULAR peso ajustado desde las guías para validar seguridad
+                $guias_ids_array = explode(',', $guias_asociadas);
+                $placeholders_guias = implode(',', array_fill(0, count($guias_ids_array), '?'));
+
+                $stmt_validar = $conn->prepare("SELECT peso_kg FROM guias_masivas WHERE id IN ($placeholders_guias)");
+                $stmt_validar->execute($guias_ids_array);
+                $guias_pesos = $stmt_validar->fetchAll(PDO::FETCH_COLUMN);
+
+                // Recalcular peso ajustado (aplicar regla < 1kg = 1kg)
+                $peso_ajustado_recalculado = 0;
+                foreach ($guias_pesos as $peso) {
+                    $peso_ajustado_recalculado += ($peso < 1) ? 1.0 : floatval($peso);
+                }
+
+                // Usar el valor recalculado en lugar del que viene del form (seguridad)
+                $peso_ajustado_calculado = $peso_ajustado_recalculado;
+                $costo_peso = round($peso_ajustado_calculado * $tarifa_peso, 2);
             } else {
                 // Modo MANUAL: aplicar regla de peso mínimo (< 1kg = tarifa mínima, >= 1kg = peso x tarifa)
-                $costo_peso = ($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso);
+                $costo_peso = round(($peso_total < 1) ? $tarifa_peso : ($peso_total * $tarifa_peso), 2);
             }
 
             // 2. Desaduanaje (tarifa variable según selección)
-            $costo_desaduanaje = $total_guias * $tarifa_desaduanaje;
+            $costo_desaduanaje = round($total_guias * $tarifa_desaduanaje, 2);
 
             // 3. Cambio de consignatario ($3 x cantidad)
-            $costo_cambio_consignatario = $cantidad_cambio_consignatario * 3.00;
+            $costo_cambio_consignatario = round($cantidad_cambio_consignatario * 3.00, 2);
 
             // 4. Reempaque ($5 x cantidad)
-            $costo_reempaque = $cantidad_reempaque * 5.00;
+            $costo_reempaque = round($cantidad_reempaque * 5.00, 2);
 
             // 5. Envío a provincia ($3 si aplica)
             $costo_envio_provincia = ($envio_provincia === 'SI') ? 3.00 : 0.00;
@@ -148,20 +184,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                   WHERE id IN ($placeholders) AND pendiente_pago = 'SI'");
                 $stmt_pendiente->execute($pedidos_seleccionados);
                 $pendiente_resultado = $stmt_pendiente->fetch();
-                $pendiente_pago = $pendiente_resultado['total_pendiente'] ?? 0.00;
+                $pendiente_pago = round($pendiente_resultado['total_pendiente'] ?? 0.00, 2);
             }
 
-            // Calcular subtotal
-            $subtotal = $costo_peso + $costo_desaduanaje + $costo_cambio_consignatario +
-                       $costo_reempaque + $costo_envio_provincia + $pendiente_pago + $gastos_adicionales - $descuento;
+            // Calcular subtotal con redondeo
+            $subtotal = round($costo_peso + $costo_desaduanaje + $costo_cambio_consignatario +
+                       $costo_reempaque + $costo_envio_provincia + $pendiente_pago + $gastos_adicionales - $descuento, 2);
 
-            // Calcular IGV y total
+            // Calcular IGV y total con redondeo
             if ($tipo_documento === 'FACTURA' || $tipo_documento === 'BOLETA') {
-                $igv = $subtotal * 0.18;
-                $total = $subtotal + $igv;
+                $igv = round($subtotal * 0.18, 2);
+                $total = round($subtotal + $igv, 2);
             } else {
                 $igv = 0.00;
-                $total = $subtotal;
+                $total = round($subtotal, 2);
                 $subtotal = 0.00; // Para recibo no mostramos subtotal
             }
 

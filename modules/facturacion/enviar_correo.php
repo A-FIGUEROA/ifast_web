@@ -59,7 +59,6 @@ try {
     $mail->CharSet    = 'UTF-8';
 
     $mail->setFrom('facturacion@ifast.com.pe', 'IFAST - Sistema de Facturación');
-
     // Agregar destinatarios
     $correos_array = array_map('trim', explode(',', $correos_destino));
     foreach ($correos_array as $correo) {

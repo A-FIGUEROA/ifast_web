@@ -694,11 +694,27 @@ function obtenerEstadisticasMensualesGenerales($conn, $fecha_desde = null, $fech
     ];
 
     try {
-        // Estadísticas del período actual
+        // ===== PESO Y GUÍAS: Desde guias_masivas por fecha_embarque =====
         $stmt = $conn->prepare("
             SELECT
-                COALESCE(SUM(peso_total), 0) as peso_total,
-                COALESCE(SUM(total_guias), 0) as guias_total,
+                COALESCE(SUM(peso_kg), 0) as peso_total,
+                COUNT(id) as guias_total
+            FROM guias_masivas
+            WHERE DATE(fecha_embarque) >= :fecha_desde
+              AND DATE(fecha_embarque) <= :fecha_hasta
+        ");
+
+        $stmt->bindParam(':fecha_desde', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta', $fecha_hasta);
+        $stmt->execute();
+        $periodoGuias = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stats['peso_total_periodo'] = $periodoGuias['peso_total'];
+        $stats['guias_periodo'] = $periodoGuias['guias_total'];
+
+        // ===== FACTURACIÓN: Desde documentos_facturacion por creado_en =====
+        $stmt = $conn->prepare("
+            SELECT
                 COALESCE(SUM(total), 0) as facturacion_total,
                 COUNT(id) as documentos,
                 COUNT(CASE WHEN tipo_documento = 'FACTURA' THEN 1 END) as facturas,
@@ -715,24 +731,38 @@ function obtenerEstadisticasMensualesGenerales($conn, $fecha_desde = null, $fech
         $stmt->bindParam(':fecha_desde', $fecha_desde);
         $stmt->bindParam(':fecha_hasta', $fecha_hasta);
         $stmt->execute();
-        $periodoActual = $stmt->fetch(PDO::FETCH_ASSOC);
+        $periodoFacturacion = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stats['peso_total_periodo'] = $periodoActual['peso_total'];
-        $stats['guias_periodo'] = $periodoActual['guias_total'];
-        $stats['facturacion_periodo'] = $periodoActual['facturacion_total'];
-        $stats['documentos_periodo'] = $periodoActual['documentos'];
-        $stats['facturas_periodo'] = $periodoActual['facturas'];
-        $stats['boletas_periodo'] = $periodoActual['boletas'];
-        $stats['recibos_periodo'] = $periodoActual['recibos'];
-        $stats['monto_facturas_periodo'] = $periodoActual['monto_facturas'];
-        $stats['monto_boletas_periodo'] = $periodoActual['monto_boletas'];
-        $stats['monto_recibos_periodo'] = $periodoActual['monto_recibos'];
+        $stats['facturacion_periodo'] = $periodoFacturacion['facturacion_total'];
+        $stats['documentos_periodo'] = $periodoFacturacion['documentos'];
+        $stats['facturas_periodo'] = $periodoFacturacion['facturas'];
+        $stats['boletas_periodo'] = $periodoFacturacion['boletas'];
+        $stats['recibos_periodo'] = $periodoFacturacion['recibos'];
+        $stats['monto_facturas_periodo'] = $periodoFacturacion['monto_facturas'];
+        $stats['monto_boletas_periodo'] = $periodoFacturacion['monto_boletas'];
+        $stats['monto_recibos_periodo'] = $periodoFacturacion['monto_recibos'];
 
-        // Estadísticas del período anterior (para comparación)
+        // ===== PERÍODO ANTERIOR: Peso y Guías =====
         $stmt = $conn->prepare("
             SELECT
-                COALESCE(SUM(peso_total), 0) as peso_total,
-                COALESCE(SUM(total_guias), 0) as guias_total,
+                COALESCE(SUM(peso_kg), 0) as peso_total,
+                COUNT(id) as guias_total
+            FROM guias_masivas
+            WHERE DATE(fecha_embarque) >= :fecha_desde_anterior
+              AND DATE(fecha_embarque) <= :fecha_hasta_anterior
+        ");
+
+        $stmt->bindParam(':fecha_desde_anterior', $fecha_desde_anterior);
+        $stmt->bindParam(':fecha_hasta_anterior', $fecha_hasta_anterior);
+        $stmt->execute();
+        $periodoAnteriorGuias = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $stats['peso_total_periodo_anterior'] = $periodoAnteriorGuias['peso_total'];
+        $stats['guias_periodo_anterior'] = $periodoAnteriorGuias['guias_total'];
+
+        // ===== PERÍODO ANTERIOR: Facturación =====
+        $stmt = $conn->prepare("
+            SELECT
                 COALESCE(SUM(total), 0) as facturacion_total
             FROM documentos_facturacion
             WHERE DATE(creado_en) >= :fecha_desde_anterior
@@ -742,11 +772,9 @@ function obtenerEstadisticasMensualesGenerales($conn, $fecha_desde = null, $fech
         $stmt->bindParam(':fecha_desde_anterior', $fecha_desde_anterior);
         $stmt->bindParam(':fecha_hasta_anterior', $fecha_hasta_anterior);
         $stmt->execute();
-        $periodoAnterior = $stmt->fetch(PDO::FETCH_ASSOC);
+        $periodoAnteriorFacturacion = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stats['peso_total_periodo_anterior'] = $periodoAnterior['peso_total'];
-        $stats['guias_periodo_anterior'] = $periodoAnterior['guias_total'];
-        $stats['facturacion_periodo_anterior'] = $periodoAnterior['facturacion_total'];
+        $stats['facturacion_periodo_anterior'] = $periodoAnteriorFacturacion['facturacion_total'];
 
     } catch(PDOException $e) {
         error_log("Error en obtenerEstadisticasMensualesGenerales: " . $e->getMessage());
@@ -773,54 +801,77 @@ function obtenerEstadisticasVendedoresMensual($conn, $fecha_desde = null, $fecha
                 u.tipo as rol,
                 u.email,
 
-                -- PESO DEL PERÍODO
-                COALESCE(SUM(
-                    CASE
-                        WHEN DATE(df.creado_en) >= :fecha_desde
-                         AND DATE(df.creado_en) <= :fecha_hasta
-                        THEN df.peso_total
-                        ELSE 0
-                    END
+                -- PESO DEL PERÍODO: desde guias_masivas por fecha_embarque
+                COALESCE((
+                    SELECT SUM(gm.peso_kg)
+                    FROM guias_masivas gm
+                    WHERE gm.creado_por = u.id
+                      AND DATE(gm.fecha_embarque) >= :fecha_desde
+                      AND DATE(gm.fecha_embarque) <= :fecha_hasta
                 ), 0) as peso_periodo,
 
-                -- GUÍAS DEL PERÍODO
-                COALESCE(SUM(
-                    CASE
-                        WHEN DATE(df.creado_en) >= :fecha_desde2
-                         AND DATE(df.creado_en) <= :fecha_hasta2
-                        THEN df.total_guias
-                        ELSE 0
-                    END
+                -- GUÍAS DEL PERÍODO: desde guias_masivas por fecha_embarque
+                COALESCE((
+                    SELECT COUNT(gm.id)
+                    FROM guias_masivas gm
+                    WHERE gm.creado_por = u.id
+                      AND DATE(gm.fecha_embarque) >= :fecha_desde2
+                      AND DATE(gm.fecha_embarque) <= :fecha_hasta2
                 ), 0) as guias_periodo,
 
-                -- FACTURACIÓN DEL PERÍODO
-                COALESCE(SUM(
-                    CASE
-                        WHEN DATE(df.creado_en) >= :fecha_desde3
-                         AND DATE(df.creado_en) <= :fecha_hasta3
-                        THEN df.total
-                        ELSE 0
-                    END
+                -- FACTURACIÓN DEL PERÍODO: desde documentos_facturacion por creado_en
+                COALESCE((
+                    SELECT SUM(df.total)
+                    FROM documentos_facturacion df
+                    WHERE df.creado_por = u.id
+                      AND DATE(df.creado_en) >= :fecha_desde3
+                      AND DATE(df.creado_en) <= :fecha_hasta3
                 ), 0) as facturacion_periodo,
 
                 -- CLIENTES NUEVOS DEL PERÍODO
-                COUNT(DISTINCT CASE
-                    WHEN DATE(c.creado_en) >= :fecha_desde4
-                     AND DATE(c.creado_en) <= :fecha_hasta4
-                    THEN c.id
-                END) as clientes_nuevos_periodo,
+                COALESCE((
+                    SELECT COUNT(DISTINCT c.id)
+                    FROM clientes c
+                    WHERE c.creado_por = u.id
+                      AND DATE(c.creado_en) >= :fecha_desde4
+                      AND DATE(c.creado_en) <= :fecha_hasta4
+                ), 0) as clientes_nuevos_periodo,
 
-                -- TOTALES HISTÓRICOS
-                COALESCE(SUM(df.peso_total), 0) as peso_total,
-                COALESCE(SUM(df.total_guias), 0) as guias_total,
-                COALESCE(SUM(df.total), 0) as facturacion_total,
-                COUNT(DISTINCT c.id) as clientes_total
+                -- TOTALES HISTÓRICOS: Peso y Guías desde guias_masivas
+                COALESCE((
+                    SELECT SUM(gm.peso_kg)
+                    FROM guias_masivas gm
+                    WHERE gm.creado_por = u.id
+                ), 0) as peso_total,
+
+                COALESCE((
+                    SELECT COUNT(gm.id)
+                    FROM guias_masivas gm
+                    WHERE gm.creado_por = u.id
+                ), 0) as guias_total,
+
+                -- TOTAL HISTÓRICO: Facturación desde documentos_facturacion
+                COALESCE((
+                    SELECT SUM(df.total)
+                    FROM documentos_facturacion df
+                    WHERE df.creado_por = u.id
+                ), 0) as facturacion_total,
+
+                -- TOTAL HISTÓRICO: Clientes
+                COALESCE((
+                    SELECT COUNT(DISTINCT c.id)
+                    FROM clientes c
+                    WHERE c.creado_por = u.id
+                ), 0) as clientes_total
 
             FROM usuarios u
-            LEFT JOIN documentos_facturacion df ON u.id = df.creado_por
-            LEFT JOIN clientes c ON u.id = c.creado_por
-            GROUP BY u.id, u.nombre, u.apellido, u.tipo, u.email
-            ORDER BY facturacion_periodo DESC
+            ORDER BY (
+                SELECT COALESCE(SUM(df.total), 0)
+                FROM documentos_facturacion df
+                WHERE df.creado_por = u.id
+                  AND DATE(df.creado_en) >= :fecha_desde5
+                  AND DATE(df.creado_en) <= :fecha_hasta5
+            ) DESC
         ");
 
         $stmt->bindParam(':fecha_desde', $fecha_desde);
@@ -831,6 +882,8 @@ function obtenerEstadisticasVendedoresMensual($conn, $fecha_desde = null, $fecha
         $stmt->bindParam(':fecha_hasta3', $fecha_hasta);
         $stmt->bindParam(':fecha_desde4', $fecha_desde);
         $stmt->bindParam(':fecha_hasta4', $fecha_hasta);
+        $stmt->bindParam(':fecha_desde5', $fecha_desde);
+        $stmt->bindParam(':fecha_hasta5', $fecha_hasta);
         $stmt->execute();
 
         $vendedores = $stmt->fetchAll(PDO::FETCH_ASSOC);

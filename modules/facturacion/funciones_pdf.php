@@ -396,24 +396,21 @@ if (!empty($guias)) {
             <table style="margin: 0;">
                 <thead>
                     <tr>
-                        <th style="width: 40%;">Consignatario</th>
-                        <th class="center" style="width: 15%;"># Paquetes</th>
-                        <th class="center" style="width: 15%;">Peso (kg)</th>
-                        <th class="center" style="width: 15%;">Peso a Cobrar</th>
+                        <th style="width: 50%;">Consignatario</th>
+                        <th class="center" style="width: 25%;"># Paquetes</th>
+                        <th class="center" style="width: 25%;">Peso Real (kg)</th>
                     </tr>
                 </thead>
                 <tbody>';
 
     foreach ($guias as $guia) {
         $peso_real = floatval($guia['peso_kg']);
-        $peso_a_cobrar = $peso_real < 1 ? 1.0 : $peso_real;
 
         $html .= '
                     <tr>
                         <td>' . htmlspecialchars($guia['consignatario']) . '</td>
                         <td class="center">' . intval($guia['pcs']) . '</td>
-                        <td class="center">' . number_format($peso_real, 2) . '</td>
-                        <td class="center">' . number_format($peso_a_cobrar, 2) . '</td>
+                        <td class="center">' . number_format($peso_real, 3) . '</td>
                     </tr>';
     }
 
