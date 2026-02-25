@@ -172,6 +172,15 @@ $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
                     <span><h3>Exportar Pedidos</h3></span>
                 </a>
             </div>
+
+            <!-- SECCIÓN CONTROL DE HORARIO (SOLO ADMIN) -->
+            <div class="menu-section">
+                <div class="menu-section-title">Control Horario</div>
+                <a href="<?php echo $base_path; ?>modules/control_horario/index.php" class="menu-item <?php echo ($current_dir === 'control_horario') ? 'active' : ''; ?>">
+                    <i><box-icon type='solid' name='time-five' color='#FDC500' size='32px'></box-icon></i>
+                    <span><h3>Dashboard Horario</h3></span>
+                </a>
+            </div>
             <?php endif; ?>
         </nav>
     </aside>

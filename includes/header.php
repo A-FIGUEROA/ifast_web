@@ -114,3 +114,10 @@
                 </div>
 
                  <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
+
+<?php
+// Incluir widget de control de horario (solo para usuarios SUPERVISOR, VENTAS, ASESOR)
+if (file_exists(__DIR__ . '/time_widget.php')) {
+    require_once __DIR__ . '/time_widget.php';
+}
+?>
