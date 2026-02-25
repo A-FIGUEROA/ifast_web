@@ -1,0 +1,282 @@
+/**
+ * ESTILOS DEL WIDGET DE CONTROL DE HORARIO
+ * Widget flotante para registro de tiempo de trabajo
+ */
+
+.time-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: all 0.3s ease;
+}
+
+.time-widget.collapsed .widget-body {
+    display: none;
+}
+
+/* Cabecera del widget */
+.widget-header {
+    background: linear-gradient(135deg, #00296B 0%, #00509D 100%);
+    color: white;
+    padding: 12px 15px;
+    border-radius: 15px 15px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.time-widget.collapsed .widget-header {
+    border-radius: 15px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+}
+
+.status-indicator.status-conectado {
+    background: #27ae60;
+    box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+}
+
+.status-indicator.status-refrigerio {
+    background: #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+}
+
+.status-indicator.status-desconectado {
+    background: #e74c3c;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(0.95);
+    }
+}
+
+.status-text {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.widget-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.time-widget.collapsed .widget-toggle {
+    transform: rotate(180deg);
+}
+
+/* Cuerpo del widget */
+.widget-body {
+    padding: 20px;
+    background: white;
+    border-radius: 0 0 15px 15px;
+}
+
+/* Displays de tiempo */
+.time-display {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.time-display.small {
+    margin-bottom: 10px;
+}
+
+.time-label {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.time-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #00509D;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    font-family: 'Courier New', monospace;
+}
+
+.time-value-small {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #f39c12;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Courier New', monospace;
+}
+
+/* Divisor */
+.widget-divider {
+    border: none;
+    border-top: 1px solid #ecf0f1;
+    margin: 15px 0;
+}
+
+/* Botones de acción */
+.widget-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.btn-widget {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+.btn-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-widget:active {
+    transform: translateY(0);
+}
+
+.btn-start {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.btn-start:hover {
+    background: linear-gradient(135deg, #229954, #27ae60);
+}
+
+.btn-refrigerio {
+    background: linear-gradient(135deg, #f39c12, #f1c40f);
+}
+
+.btn-refrigerio:hover {
+    background: linear-gradient(135deg, #e67e22, #f39c12);
+}
+
+.btn-volver {
+    background: linear-gradient(135deg, #3498db, #5dade2);
+}
+
+.btn-volver:hover {
+    background: linear-gradient(135deg, #2980b9, #3498db);
+}
+
+.btn-finalizar {
+    background: linear-gradient(135deg, #e74c3c, #ec7063);
+}
+
+.btn-finalizar:hover {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+/* Resumen del día */
+.widget-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 10px;
+    border-top: 1px solid #ecf0f1;
+}
+
+.widget-summary small {
+    font-size: 0.75rem;
+    color: #95a5a6;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .time-widget {
+        width: 280px;
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .time-value {
+        font-size: 2rem;
+    }
+
+    .widget-body {
+        padding: 15px;
+    }
+}
+
+/* Animación de entrada */
+@keyframes slideInUp {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.time-widget {
+    animation: slideInUp 0.5s ease-out;
+}
+
+/* Efecto de carga */
+.btn-widget.loading {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn-widget.loading::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 2px solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
