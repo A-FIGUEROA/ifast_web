@@ -491,6 +491,8 @@ if ($tipo_usuario === 'ADMIN') {
             padding: 20px;
             background: #f8f9fa;
             border-radius: 10px;
+            margin-top: 15px;
+            border-top: 2px solid #e0e0e0;
         }
 
         .date-input {
@@ -633,58 +635,51 @@ if ($tipo_usuario === 'ADMIN') {
                         <div class="filter-options">
                             <!-- Filtros Rápidos -->
                             <div class="quick-filters">
-                                <label class="filter-option <?php echo $tipo_filtro === 'mes_actual' ? 'active' : ''; ?>">
-                                    <input type="radio" name="filtro" value="mes_actual"
-                                           <?php echo $tipo_filtro === 'mes_actual' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(false); this.form.submit();">
-                                    <span>Este mes</span>
-                                </label>
-
                                 <label class="filter-option <?php echo $tipo_filtro === 'mes_pasado' ? 'active' : ''; ?>">
                                     <input type="radio" name="filtro" value="mes_pasado"
                                            <?php echo $tipo_filtro === 'mes_pasado' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                           onchange="this.form.submit();">
                                     <span>Mes pasado</span>
                                 </label>
 
-                                <label class="filter-option <?php echo $tipo_filtro === 'ultimos_30' ? 'active' : ''; ?>">
-                                    <input type="radio" name="filtro" value="ultimos_30"
-                                           <?php echo $tipo_filtro === 'ultimos_30' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(false); this.form.submit();">
-                                    <span>Últimos 30 días</span>
+                                <label class="filter-option <?php echo $tipo_filtro === 'mes_actual' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="mes_actual"
+                                           <?php echo $tipo_filtro === 'mes_actual' ? 'checked' : ''; ?>
+                                           onchange="this.form.submit();">
+                                    <span>Este mes</span>
                                 </label>
 
                                 <label class="filter-option <?php echo $tipo_filtro === 'ultimos_90' ? 'active' : ''; ?>">
                                     <input type="radio" name="filtro" value="ultimos_90"
                                            <?php echo $tipo_filtro === 'ultimos_90' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                           onchange="this.form.submit();">
                                     <span>Últimos 3 meses</span>
+                                </label>
+
+                                <label class="filter-option <?php echo $tipo_filtro === 'ultimos_180' ? 'active' : ''; ?>">
+                                    <input type="radio" name="filtro" value="ultimos_180"
+                                           <?php echo $tipo_filtro === 'ultimos_180' ? 'checked' : ''; ?>
+                                           onchange="this.form.submit();">
+                                    <span>Últimos 6 meses</span>
                                 </label>
 
                                 <label class="filter-option <?php echo $tipo_filtro === 'anio_actual' ? 'active' : ''; ?>">
                                     <input type="radio" name="filtro" value="anio_actual"
                                            <?php echo $tipo_filtro === 'anio_actual' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                           onchange="this.form.submit();">
                                     <span>Este año</span>
                                 </label>
 
                                 <label class="filter-option <?php echo $tipo_filtro === 'anio_pasado' ? 'active' : ''; ?>">
                                     <input type="radio" name="filtro" value="anio_pasado"
                                            <?php echo $tipo_filtro === 'anio_pasado' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(false); this.form.submit();">
+                                           onchange="this.form.submit();">
                                     <span>Año pasado</span>
-                                </label>
-
-                                <label class="filter-option <?php echo $tipo_filtro === 'personalizado' ? 'active' : ''; ?>">
-                                    <input type="radio" name="filtro" value="personalizado"
-                                           <?php echo $tipo_filtro === 'personalizado' ? 'checked' : ''; ?>
-                                           onchange="toggleCustomDates(true);">
-                                    <span>Personalizado</span>
                                 </label>
                             </div>
 
-                            <!-- Fechas Personalizadas -->
-                            <div class="custom-dates" id="customDates" style="display: <?php echo $tipo_filtro === 'personalizado' ? 'flex' : 'none'; ?>;">
+                            <!-- Fechas Personalizadas - SIEMPRE VISIBLES -->
+                            <div class="custom-dates" id="customDates">
                                 <div class="date-input">
                                     <label>Desde:</label>
                                     <input type="date" name="fecha_desde"
@@ -929,43 +924,28 @@ if ($tipo_usuario === 'ADMIN') {
 
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
     <script>
-        function toggleCustomDates(show) {
-            const customDates = document.getElementById('customDates');
-            if (show) {
-                customDates.style.display = 'flex';
-            } else {
-                customDates.style.display = 'none';
-            }
-        }
-
         // Validar fechas antes de enviar
         document.addEventListener('DOMContentLoaded', function() {
             const filterForm = document.getElementById('filterForm');
             if (filterForm) {
                 filterForm.addEventListener('submit', function(e) {
-                    const tipoFiltro = document.querySelector('input[name="filtro"]:checked');
+                    const fechaDesde = document.querySelector('input[name="fecha_desde"]').value;
+                    const fechaHasta = document.querySelector('input[name="fecha_hasta"]').value;
 
-                    if (!tipoFiltro) {
-                        e.preventDefault();
-                        alert('Por favor selecciona un tipo de filtro');
-                        return false;
-                    }
-
-                    if (tipoFiltro.value === 'personalizado') {
-                        const fechaDesde = document.querySelector('input[name="fecha_desde"]').value;
-                        const fechaHasta = document.querySelector('input[name="fecha_hasta"]').value;
-
-                        if (!fechaDesde || !fechaHasta) {
-                            e.preventDefault();
-                            alert('Por favor selecciona ambas fechas para el rango personalizado');
-                            return false;
-                        }
-
+                    // Si ambas fechas están completas, validar que sean coherentes
+                    if (fechaDesde && fechaHasta) {
                         if (fechaDesde > fechaHasta) {
                             e.preventDefault();
                             alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
                             return false;
                         }
+                    }
+
+                    // Si solo una fecha está completa, alertar
+                    if ((fechaDesde && !fechaHasta) || (!fechaDesde && fechaHasta)) {
+                        e.preventDefault();
+                        alert('Por favor completa ambas fechas o deja ambas vacías para usar los filtros rápidos');
+                        return false;
                     }
                 });
             }
