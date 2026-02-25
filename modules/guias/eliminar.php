@@ -2,8 +2,8 @@
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-// Solo ADMIN y SUPERVISOR pueden eliminar
-requierePermiso(['ADMIN', 'SUPERVISOR']);
+// Solo ADMIN puede eliminar guías (antes: ADMIN, SUPERVISOR)
+requierePermiso(['ADMIN']);
 
 $database = new Database();
 $conn = $database->getConnection();

@@ -2,7 +2,8 @@
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-requierePermiso(['ADMIN', 'SUPERVISOR', 'VENTAS']);
+// Solo ADMIN puede eliminar pedidos (antes: ADMIN, SUPERVISOR, VENTAS)
+requierePermiso(['ADMIN']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 

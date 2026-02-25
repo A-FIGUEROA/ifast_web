@@ -2,7 +2,8 @@
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-requierePermiso(['ADMIN', 'SUPERVISOR']);
+// Solo ADMIN puede eliminar documentos de facturación (antes: ADMIN, SUPERVISOR)
+requierePermiso(['ADMIN']);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 

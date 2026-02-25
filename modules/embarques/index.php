@@ -690,11 +690,16 @@ $guias = $stmt->fetchAll();
                                                title="Editar">
                                                 ✏️
                                             </button>
+
+                                            <?php // BOTÓN ELIMINAR - SOLO ADMIN ?>
+                                            <?php if ($tipo_usuario === 'ADMIN'): ?>
                                             <button onclick="eliminarEmbarque(<?php echo $guia['id_guia']; ?>)"
                                                class="btn btn-small btn-delete"
                                                title="Eliminar">
                                                 🗑️
                                             </button>
+                                            <?php endif; ?>
+                                            <?php // FIN BOTÓN ELIMINAR ?>
                                         </div>
                                     </td>
                                 </tr>

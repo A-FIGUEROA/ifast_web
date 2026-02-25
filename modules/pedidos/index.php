@@ -756,11 +756,16 @@ $clientes_lista = $stmt->fetchAll();
                                            class="btn btn-small btn-edit" title="Editar">
                                            ✏️
                                         </a>
+
+                                        <?php // BOTÓN ELIMINAR - SOLO ADMIN ?>
+                                        <?php if ($tipo_usuario === 'ADMIN'): ?>
                                         <a href="eliminar.php?id=<?php echo $pedido['id']; ?>"
                                            class="btn btn-small btn-delete" title="Eliminar"
                                            onclick="return confirm('¿Eliminar este recibo y todos sus trackings?')">
                                            🗑️
                                         </a>
+                                        <?php endif; ?>
+                                        <?php // FIN BOTÓN ELIMINAR ?>
                                         <?php endif; ?>
                                     </td>
                                 </tr>

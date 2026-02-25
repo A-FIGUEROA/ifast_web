@@ -549,13 +549,16 @@ $tipo_usuario = obtenerTipoUsuario();
                                        class="btn btn-small btn-edit" title="Editar">
                                        ✏️
                                     </a>
-                                    <?php if ($tipo_usuario !== 'VENTAS'): ?>
+
+                                    <?php // BOTÓN ELIMINAR - SOLO ADMIN ?>
+                                    <?php if ($tipo_usuario === 'ADMIN'): ?>
                                     <a href="eliminar.php?id=<?php echo $doc['id']; ?>"
                                        class="btn btn-small btn-delete" title="Eliminar"
                                        onclick="return confirm('¿Eliminar el documento <?php echo $doc['numero_documento']; ?>?')">
                                        🗑️
                                     </a>
                                     <?php endif; ?>
+                                    <?php // FIN BOTÓN ELIMINAR ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

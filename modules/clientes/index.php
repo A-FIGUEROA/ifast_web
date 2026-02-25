@@ -712,11 +712,16 @@ $clientes = $stmt->fetchAll();
                                            class="btn btn-small btn-edit" title="Editar">
                                            ✏️
                                         </button>
+
+                                        <?php // BOTÓN ELIMINAR - SOLO ADMIN ?>
+                                        <?php if ($tipo_usuario === 'ADMIN'): ?>
                                         <a href="eliminar.php?id=<?php echo $cliente['id']; ?>"
                                            class="btn btn-small btn-delete" title="Eliminar"
                                            onclick="return confirm('¿Eliminar este cliente y todos sus archivos?')">
                                            🗑️
                                         </a>
+                                        <?php endif; ?>
+                                        <?php // FIN BOTÓN ELIMINAR ?>
                                         <?php endif; ?>
                                     </td>
                                 </tr>

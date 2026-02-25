@@ -865,9 +865,14 @@ $guias = $stmt->fetchAll();
                                         <a href="editar.php?id=<?php echo $guia['id']; ?>" class="btn btn-warning btn-sm" title="Editar">
                                             <i class='bx bx-edit'></i>
                                         </a>
+
+                                        <?php // BOTÓN ELIMINAR - SOLO ADMIN ?>
+                                        <?php if ($tipo_usuario === 'ADMIN'): ?>
                                         <a href="eliminar.php?id=<?php echo $guia['id']; ?>" class="btn btn-danger btn-sm" title="Eliminar" onclick="return confirm('¿Está seguro de eliminar esta guía?')">
                                             <i class='bx bx-trash'></i>
                                         </a>
+                                        <?php endif; ?>
+                                        <?php // FIN BOTÓN ELIMINAR ?>
                                         <?php endif; ?>
                                     </div>
                                 </td>

@@ -5,7 +5,8 @@ ini_set('display_errors', 0);
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 
-requiereLogin();
+// Solo ADMIN puede eliminar embarques (antes: solo requiereLogin)
+requierePermiso(['ADMIN']);
 header('Content-Type: application/json');
 
 $database = new Database();
