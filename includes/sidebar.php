@@ -159,8 +159,8 @@ $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
                 </a>
             </div>
 
-            <!-- SECCIÓN REPORTES (ADMIN y SUPERVISOR) -->
-            <?php if ($tipo_usuario !== 'VENTAS'): ?>
+            <!-- SECCIÓN REPORTES (SOLO ADMIN) -->
+            <?php if ($tipo_usuario === 'ADMIN'): ?>
             <div class="menu-section">
                 <div class="menu-section-title">Reportes</div>
                 <a href="<?php echo $base_path; ?>modules/reportes/exportar_clientes.php" class="menu-item">
