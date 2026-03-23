@@ -16,7 +16,8 @@ $is_clientes = ($current_dir === 'clientes');
 $is_pedidos = ($current_dir === 'pedidos');
 $is_embarques = ($current_dir === 'embarques');
 $is_guias = ($current_dir === 'guias');
-$is_reportes = ($current_dir === 'reportes');
+$is_reportes         = ($current_dir === 'reportes');
+$is_correos_masivos  = ($current_dir === 'correos_masivos');
 
 // Determinar la ruta base según desde dónde se incluye
 $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
@@ -156,6 +157,10 @@ $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
                 <a href="<?php echo $base_path; ?>modules/facturacion/index.php" class="menu-item <?php echo ($current_dir === 'facturacion') ? 'active' : ''; ?>">
                     <i><box-icon type='solid' name='receipt' color='#FDC500' size='32px'></box-icon></i>
                     <span><h3>Facturación</h3></span>
+                </a>
+                <a href="<?php echo $base_path; ?>modules/correos_masivos/index.php" class="menu-item <?php echo $is_correos_masivos ? 'active' : ''; ?>">
+                    <i><box-icon name='mail-send' color='#FDC500' size='32px'></box-icon></i>
+                    <span><h3>Correos Masivos</h3></span>
                 </a>
             </div>
 
