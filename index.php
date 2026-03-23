@@ -176,25 +176,18 @@
             border-left: 4px solid #3c3;
         }
 
-        .credentials-info {
-            background: #f0f4ff;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            border-radius: 8px;
+        .login-banner {
             margin-top: 30px;
-            font-size: 0.85rem;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        .credentials-info h4 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .credentials-info p {
-            color: #555;
-            margin: 5px 0;
-            font-family: monospace;
+        .login-banner img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
         }
 
         @media (max-width: 768px) {
@@ -243,11 +236,8 @@
             <div class="sidebar-header" style="text-align: center;">
   <img src="assets/logo/logo.png" alt="Logo" style="width:200px; height:60px;">
 </div>
-            <div class="credentials-info">
-                <h4>🔑 Credenciales de Prueba:</h4>
-                <p><strong>Admin:</strong> admin@sistema.com / admin123</p>
-                <p><strong>Supervisor:</strong> supervisor@sistema.com / super123</p>
-                <p><strong>Ventas:</strong> ventas@sistema.com / ventas123</p>
+            <div class="login-banner">
+                <img src="assets/logo/login_banner.jpg" alt="iFast Banner">
             </div>
         </div>
 
