@@ -218,12 +218,12 @@ if ($accion === 'guardar_borrador' || $accion === 'enviar') {
                 $mail->isSMTP();
                 $mail->Host       = 'ifast.com.pe';
                 $mail->SMTPAuth   = true;
-                $mail->Username   = 'ventas@ifast.com.pe';
-                $mail->Password   = '*VO=ndl*&PB0e&L6';
+                $mail->Username   = 'info@ifast.com.pe';
+                $mail->Password   = '*Z*FZg_Z.9h~&zBZ';
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
                 $mail->Port       = 465;
                 $mail->CharSet    = 'UTF-8';
-                $mail->setFrom('ventas@ifast.com.pe', 'IFAST - International Courier');
+                $mail->setFrom('info@ifast.com.pe', 'IFAST - International Courier');
                 $mail->addAddress($dest['email'], $dest['nombre'] ?: '');
                 $mail->Subject = $asunto;
                 $mail->isHTML(true);
@@ -248,7 +248,7 @@ if ($accion === 'guardar_borrador' || $accion === 'enviar') {
                     <div class="body-content">' . $cuerpo_html . '</div>
                     <div class="footer-bar">
                         INTERNATIONAL COURIER SERVICE S.A.C. &nbsp;|&nbsp;
-                        <a href="mailto:ventas@ifast.com.pe">ventas@ifast.com.pe</a> &nbsp;|&nbsp;
+                        <a href="mailto:info@ifast.com.pe">info@ifast.com.pe</a> &nbsp;|&nbsp;
                         Tel: (+51) 902 937 040
                     </div>
                 </div></body></html>';
