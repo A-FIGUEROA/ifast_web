@@ -99,6 +99,15 @@ try {
                 <p><span class="info-label">Tipo:</span> ' . htmlspecialchars($doc['tipo_documento']) . '</p>
                 <p><span class="info-label">Fecha:</span> ' . date('d/m/Y', strtotime($doc['creado_en'])) . '</p>
             </div>
+            <div class="info-box" style="background:#f0f7ff; border-left-color:#00296b; margin-top:12px;">
+                <p style="font-weight:bold; color:#00296b; font-size:1rem; margin-bottom:8px;">💳 Datos para realizar su pago</p>
+                <p style="margin-bottom:10px; color:#555;">Para cancelar su documento puede realizar un depósito o transferencia a la siguiente cuenta:</p>
+                <p><span class="info-label">Empresa:</span> INTERNATIONAL COURIER SERVICE S.A.C.</p>
+                <p><span class="info-label">RUC:</span> 20611227982</p>
+                <p style="margin-top:8px;"><span class="info-label">🏦 Banco:</span> BCP — Cuenta en Dólares</p>
+                <p><span class="info-label">N° Cuenta:</span> 1917086387174</p>
+                <p><span class="info-label">N° Interbancaria (CCI):</span> 00219100708638717458</p>
+            </div>
             <div class="total-box">
                 TOTAL: $' . number_format($doc['total'], 2) . ' USD
             </div>';

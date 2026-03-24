@@ -585,6 +585,17 @@ $html .= '
             </div>
         </div>
 
+        <!-- DATOS BANCARIOS -->
+        <div style="clear:both; margin-top:18px; border-left:4px solid #00296b; background:#f0f7ff; padding:10px 14px; border-radius:4px; font-size:8.5pt;">
+            <strong style="color:#00296b; font-size:9pt;">DATOS PARA EL PAGO</strong><br><br>
+            Para cancelar su documento puede realizar un dep&oacute;sito o transferencia a la siguiente cuenta:<br><br>
+            <strong>Empresa:</strong> INTERNATIONAL COURIER SERVICE S.A.C.<br>
+            <strong>RUC:</strong> 20611227982<br><br>
+            <strong>Banco:</strong> BCP &mdash; Cuenta en D&oacute;lares<br>
+            <strong>N&deg; Cuenta:</strong> 1917086387174<br>
+            <strong>N&deg; Interbancaria (CCI):</strong> 00219100708638717458
+        </div>
+
         <!-- FOOTER -->
         <div class="footer-text">
             SON: ';
