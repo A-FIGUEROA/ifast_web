@@ -2,6 +2,9 @@
 // config/database.php
 // Configuración de conexión a la base de datos
 
+// Zona horaria Lima/Peru (UTC-5, sin horario de verano)
+date_default_timezone_set('America/Lima');
+
 class Database {
     private $host = "localhost";
     private $db_name = "iaplokxt_ifast_db";
