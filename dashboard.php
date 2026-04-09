@@ -1057,10 +1057,6 @@ if ($tipo_usuario === 'ADMIN') {
                                 <tr>
                                     <th>Vendedor</th>
                                     <th>Rol</th>
-                                    <th class="text-right">Peso (kg)</th>
-                                    <th class="text-right">Guías</th>
-                                    <th class="text-right">Facturación</th>
-                                    <th class="text-right">Clientes Nuevos</th>
                                     <th class="text-right">Acciones</th>
                                 </tr>
                             </thead>
@@ -1086,33 +1082,10 @@ if ($tipo_usuario === 'ADMIN') {
                                         </span>
                                     </td>
                                     <td class="text-right">
-                                        <strong><?php echo number_format($vendedor['peso_periodo'], 2); ?> kg</strong>
-                                        <small>Total: <?php echo number_format($vendedor['peso_total'], 2); ?> kg</small>
-                                    </td>
-                                    <td class="text-right">
-                                        <strong><?php echo number_format($vendedor['guias_periodo']); ?></strong>
-                                        <small>Total: <?php echo number_format($vendedor['guias_total']); ?></small>
-                                    </td>
-                                    <td class="text-right">
-                                        <strong style="color: #00509d; font-size: 1.05rem;">$<?php echo number_format($vendedor['facturacion_periodo'], 2); ?></strong>
-                                        <small>Total: $<?php echo number_format($vendedor['facturacion_total'], 2); ?></small>
-                                    </td>
-                                    <td class="text-right">
-                                        <?php if ($vendedor['clientes_nuevos_periodo'] > 0): ?>
-                                        <span class="badge-new-clients">
-                                            <box-icon name='user-plus' type='solid' size='16px' color='#27ae60'></box-icon>
-                                            +<?php echo $vendedor['clientes_nuevos_periodo']; ?>
-                                        </span>
-                                        <?php else: ?>
-                                        <span style="color: #95a5a6;">0</span>
-                                        <?php endif; ?>
-                                        <small>Total: <?php echo $vendedor['clientes_total']; ?> clientes</small>
-                                    </td>
-                                    <td class="text-right">
                                         <button class="btn-ver"
                                             onclick="abrirDetalleVendedor(<?php echo $vendedor['id']; ?>, '<?php echo htmlspecialchars($vendedor['nombre_completo']); ?>')">
                                             <box-icon name='show' size='14px' color='white'></box-icon>
-                                            Ver
+                                            Ver detalle
                                         </button>
                                     </td>
                                 </tr>
