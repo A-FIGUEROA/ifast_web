@@ -548,6 +548,248 @@ if ($tipo_usuario === 'ADMIN') {
             height: 20px;
         }
 
+        /* MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.25s ease;
+        }
+
+        @keyframes modalIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #00296B 0%, #00509D 100%);
+            color: white;
+            padding: 24px 28px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .modal-header p {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover { background: rgba(255,255,255,0.35); }
+
+        .modal-body {
+            padding: 28px;
+        }
+
+        .modal-period {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 24px;
+            padding: 10px 14px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            border-left: 3px solid #00509d;
+        }
+
+        .modal-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #95a5a6;
+            margin: 20px 0 12px 0;
+        }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .modal-stat {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .modal-stat-icon.blue   { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .modal-stat-icon.green  { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .modal-stat-icon.orange { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .modal-stat-icon.cyan   { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+
+        .modal-stat-info strong {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1;
+            margin-bottom: 3px;
+        }
+
+        .modal-stat-info span {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .modal-fact-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-fact-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .modal-fact-row .label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .modal-fact-row .amount {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #2c3e50;
+        }
+
+        .modal-fact-row .count {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            margin-left: 4px;
+        }
+
+        .modal-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 18px;
+            background: linear-gradient(135deg, #00296B 0%, #00509D 100%);
+            border-radius: 10px;
+            margin-top: 16px;
+        }
+
+        .modal-total .label {
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-total .amount {
+            color: #FDC500;
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+
+        .modal-loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .modal-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #00509d;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-ver {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #00509d, #00296B);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-ver:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,80,157,0.35);
+        }
+
         /* RESPONSIVE */
         @media (max-width: 768px) {
             .main-content {
@@ -819,6 +1061,7 @@ if ($tipo_usuario === 'ADMIN') {
                                     <th class="text-right">Guías</th>
                                     <th class="text-right">Facturación</th>
                                     <th class="text-right">Clientes Nuevos</th>
+                                    <th class="text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -864,6 +1107,13 @@ if ($tipo_usuario === 'ADMIN') {
                                         <span style="color: #95a5a6;">0</span>
                                         <?php endif; ?>
                                         <small>Total: <?php echo $vendedor['clientes_total']; ?> clientes</small>
+                                    </td>
+                                    <td class="text-right">
+                                        <button class="btn-ver"
+                                            onclick="abrirDetalleVendedor(<?php echo $vendedor['id']; ?>, '<?php echo htmlspecialchars($vendedor['nombre_completo']); ?>')">
+                                            <box-icon name='show' size='14px' color='white'></box-icon>
+                                            Ver
+                                        </button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -922,8 +1172,160 @@ if ($tipo_usuario === 'ADMIN') {
         </div>
     </main>
 
+    <!-- MODAL DETALLE VENDEDOR -->
+    <div class="modal-overlay" id="modalVendedor" onclick="cerrarModalSiOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalNombre">Cargando...</h3>
+                    <p id="modalRolEmail"></p>
+                </div>
+                <button class="modal-close" onclick="cerrarModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="modal-loading">
+                    <div class="modal-spinner"></div>
+                    <p>Cargando datos...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
     <script>
+        // Detalle de vendedor
+        const FECHA_DESDE = '<?php echo $fecha_desde; ?>';
+        const FECHA_HASTA = '<?php echo $fecha_hasta; ?>';
+        const ETIQUETA   = '<?php echo addslashes($etiqueta_periodo); ?>';
+
+        function fmt(n) {
+            return 'S/ ' + parseFloat(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function abrirDetalleVendedor(usuarioId, nombre) {
+            document.getElementById('modalNombre').textContent = nombre;
+            document.getElementById('modalRolEmail').textContent = '';
+            document.getElementById('modalBody').innerHTML = `
+                <div class="modal-loading">
+                    <div class="modal-spinner"></div>
+                    <p>Cargando datos...</p>
+                </div>`;
+            document.getElementById('modalVendedor').classList.add('active');
+
+            fetch('/ifast_web/api/vendedor_detalle.php?usuario_id=' + usuarioId +
+                  '&fecha_desde=' + FECHA_DESDE + '&fecha_hasta=' + FECHA_HASTA)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        document.getElementById('modalBody').innerHTML =
+                            '<p style="color:#e74c3c;text-align:center;padding:30px;">Error al cargar los datos.</p>';
+                        return;
+                    }
+
+                    document.getElementById('modalNombre').textContent = data.vendedor;
+                    document.getElementById('modalRolEmail').textContent = data.rol + ' · ' + data.email;
+
+                    document.getElementById('modalBody').innerHTML = `
+                        <div class="modal-period">
+                            <box-icon name='calendar' size='16px' color='#00509d'></box-icon>
+                            Período: <strong>${ETIQUETA}</strong>
+                            &nbsp;(${data.fecha_desde} → ${data.fecha_hasta})
+                        </div>
+
+                        <div class="modal-section-title">Actividad del período</div>
+                        <div class="modal-stats-grid">
+                            <div class="modal-stat">
+                                <div class="modal-stat-icon green">
+                                    <box-icon name='user-check' type='solid' color='white' size='20px'></box-icon>
+                                </div>
+                                <div class="modal-stat-info">
+                                    <strong>${data.clientes}</strong>
+                                    <span>Clientes nuevos</span>
+                                </div>
+                            </div>
+                            <div class="modal-stat">
+                                <div class="modal-stat-icon orange">
+                                    <box-icon name='package' type='solid' color='white' size='20px'></box-icon>
+                                </div>
+                                <div class="modal-stat-info">
+                                    <strong>${data.pedidos}</strong>
+                                    <span>Pedidos</span>
+                                </div>
+                            </div>
+                            <div class="modal-stat">
+                                <div class="modal-stat-icon cyan">
+                                    <box-icon name='plane-alt' type='solid' color='white' size='20px'></box-icon>
+                                </div>
+                                <div class="modal-stat-info">
+                                    <strong>${data.embarques}</strong>
+                                    <span>Embarques</span>
+                                </div>
+                            </div>
+                            <div class="modal-stat">
+                                <div class="modal-stat-icon blue">
+                                    <box-icon name='file-blank' type='solid' color='white' size='20px'></box-icon>
+                                </div>
+                                <div class="modal-stat-info">
+                                    <strong>${data.guias}</strong>
+                                    <span>Guías · ${data.peso_total} kg</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-section-title">Facturación del período</div>
+                        <div class="modal-fact-rows">
+                            <div class="modal-fact-row">
+                                <div class="label">
+                                    <box-icon name='receipt' type='solid' size='18px' color='#667eea'></box-icon>
+                                    Facturas
+                                    <span class="count">(${data.facturas})</span>
+                                </div>
+                                <div class="amount">${fmt(data.monto_facturas)}</div>
+                            </div>
+                            <div class="modal-fact-row">
+                                <div class="label">
+                                    <box-icon name='receipt' type='solid' size='18px' color='#11998e'></box-icon>
+                                    Boletas
+                                    <span class="count">(${data.boletas})</span>
+                                </div>
+                                <div class="amount">${fmt(data.monto_boletas)}</div>
+                            </div>
+                            <div class="modal-fact-row">
+                                <div class="label">
+                                    <box-icon name='receipt' type='solid' size='18px' color='#f5576c'></box-icon>
+                                    Recibos
+                                    <span class="count">(${data.recibos})</span>
+                                </div>
+                                <div class="amount">${fmt(data.monto_recibos)}</div>
+                            </div>
+                        </div>
+                        <div class="modal-total">
+                            <div class="label">
+                                <box-icon name='dollar-circle' type='solid' color='#FDC500' size='22px'></box-icon>
+                                Total Facturado
+                            </div>
+                            <div class="amount">${fmt(data.total_facturado)}</div>
+                        </div>
+                    `;
+                })
+                .catch(() => {
+                    document.getElementById('modalBody').innerHTML =
+                        '<p style="color:#e74c3c;text-align:center;padding:30px;">Error de conexión.</p>';
+                });
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalVendedor').classList.remove('active');
+        }
+
+        function cerrarModalSiOverlay(e) {
+            if (e.target === document.getElementById('modalVendedor')) cerrarModal();
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') cerrarModal();
+        });
+
         // Validar fechas antes de enviar
         document.addEventListener('DOMContentLoaded', function() {
             const filterForm = document.getElementById('filterForm');
