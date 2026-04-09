@@ -1199,7 +1199,7 @@ if ($tipo_usuario === 'ADMIN') {
         const ETIQUETA   = '<?php echo addslashes($etiqueta_periodo); ?>';
 
         function fmt(n) {
-            return 'S/ ' + parseFloat(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return '$ ' + parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         function abrirDetalleVendedor(usuarioId, nombre) {
