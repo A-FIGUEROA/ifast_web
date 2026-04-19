@@ -18,6 +18,7 @@ $is_embarques = ($current_dir === 'embarques');
 $is_guias = ($current_dir === 'guias');
 $is_reportes         = ($current_dir === 'reportes');
 $is_correos_masivos  = ($current_dir === 'correos_masivos');
+$is_postulantes      = ($current_dir === 'postulantes');
 
 // Determinar la ruta base según desde dónde se incluye
 $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
@@ -131,6 +132,10 @@ $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
                 <a href="<?php echo $base_path; ?>modules/usuarios/index.php" class="menu-item <?php echo $is_usuarios ? 'active' : ''; ?>">
                     <i><box-icon name='user-plus' color='#FDC500' size='32px'></box-icon></i>
                     <span><h3>Usuarios</h3></span>
+                </a>
+                <a href="<?php echo $base_path; ?>modules/postulantes/index.php" class="menu-item <?php echo $is_postulantes ? 'active' : ''; ?>">
+                    <i><box-icon name='user-check' color='#FDC500' size='32px'></box-icon></i>
+                    <span><h3>Postulantes</h3></span>
                 </a>
             </div>
             <?php endif; ?>
