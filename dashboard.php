@@ -1307,20 +1307,31 @@ if ($tipo_usuario === 'ADMIN') {
                     const fechaDesde = document.querySelector('input[name="fecha_desde"]').value;
                     const fechaHasta = document.querySelector('input[name="fecha_hasta"]').value;
 
-                    // Si ambas fechas están completas, validar que sean coherentes
+                    // Si solo una fecha está completa, alertar
+                    if ((fechaDesde && !fechaHasta) || (!fechaDesde && fechaHasta)) {
+                        e.preventDefault();
+                        alert('Por favor completa ambas fechas o deja ambas vacías para usar los filtros rápidos');
+                        return false;
+                    }
+
+                    // Si ambas fechas están completas, validar coherencia e inyectar filtro=personalizado
                     if (fechaDesde && fechaHasta) {
                         if (fechaDesde > fechaHasta) {
                             e.preventDefault();
                             alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
                             return false;
                         }
-                    }
-
-                    // Si solo una fecha está completa, alertar
-                    if ((fechaDesde && !fechaHasta) || (!fechaDesde && fechaHasta)) {
-                        e.preventDefault();
-                        alert('Por favor completa ambas fechas o deja ambas vacías para usar los filtros rápidos');
-                        return false;
+                        // Desmarcar todos los radios para que no compitan con el hidden
+                        document.querySelectorAll('input[name="filtro"]').forEach(r => r.checked = false);
+                        let hidden = document.getElementById('filtroPersonalizado');
+                        if (!hidden) {
+                            hidden = document.createElement('input');
+                            hidden.type = 'hidden';
+                            hidden.name = 'filtro';
+                            hidden.id = 'filtroPersonalizado';
+                            filterForm.appendChild(hidden);
+                        }
+                        hidden.value = 'personalizado';
                     }
                 });
             }

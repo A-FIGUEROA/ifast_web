@@ -83,14 +83,15 @@ try {
     $stmt->execute();
     $embarques = (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-    // Guías del período
+    // Guías del período (por nombre de asesor coincidente con el usuario)
+    $nombre_completo = trim($vendedor['nombre']);
     $stmt = $conn->prepare("
         SELECT COUNT(*) as total, COALESCE(SUM(peso_kg), 0) as peso_total
         FROM guias_masivas
-        WHERE creado_por = :uid
+        WHERE asesor = :nombre_completo
           AND DATE(fecha_embarque) >= :fd AND DATE(fecha_embarque) <= :fh
     ");
-    $stmt->bindParam(':uid', $usuario_id, PDO::PARAM_INT);
+    $stmt->bindParam(':nombre_completo', $nombre_completo);
     $stmt->bindParam(':fd', $fecha_desde);
     $stmt->bindParam(':fh', $fecha_hasta);
     $stmt->execute();

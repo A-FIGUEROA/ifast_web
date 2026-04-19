@@ -801,20 +801,20 @@ function obtenerEstadisticasVendedoresMensual($conn, $fecha_desde = null, $fecha
                 u.tipo as rol,
                 u.email,
 
-                -- PESO DEL PERÍODO: desde guias_masivas por fecha_embarque
+                -- PESO DEL PERÍODO: desde guias_masivas por asesor y fecha_embarque
                 COALESCE((
                     SELECT SUM(gm.peso_kg)
                     FROM guias_masivas gm
-                    WHERE gm.creado_por = u.id
+                    WHERE gm.asesor = CONCAT(u.nombre, ' ', u.apellido)
                       AND DATE(gm.fecha_embarque) >= :fecha_desde
                       AND DATE(gm.fecha_embarque) <= :fecha_hasta
                 ), 0) as peso_periodo,
 
-                -- GUÍAS DEL PERÍODO: desde guias_masivas por fecha_embarque
+                -- GUÍAS DEL PERÍODO: desde guias_masivas por asesor y fecha_embarque
                 COALESCE((
                     SELECT COUNT(gm.id)
                     FROM guias_masivas gm
-                    WHERE gm.creado_por = u.id
+                    WHERE gm.asesor = CONCAT(u.nombre, ' ', u.apellido)
                       AND DATE(gm.fecha_embarque) >= :fecha_desde2
                       AND DATE(gm.fecha_embarque) <= :fecha_hasta2
                 ), 0) as guias_periodo,
@@ -837,17 +837,17 @@ function obtenerEstadisticasVendedoresMensual($conn, $fecha_desde = null, $fecha
                       AND DATE(c.creado_en) <= :fecha_hasta4
                 ), 0) as clientes_nuevos_periodo,
 
-                -- TOTALES HISTÓRICOS: Peso y Guías desde guias_masivas
+                -- TOTALES HISTÓRICOS: Peso y Guías desde guias_masivas por asesor
                 COALESCE((
                     SELECT SUM(gm.peso_kg)
                     FROM guias_masivas gm
-                    WHERE gm.creado_por = u.id
+                    WHERE gm.asesor = CONCAT(u.nombre, ' ', u.apellido)
                 ), 0) as peso_total,
 
                 COALESCE((
                     SELECT COUNT(gm.id)
                     FROM guias_masivas gm
-                    WHERE gm.creado_por = u.id
+                    WHERE gm.asesor = CONCAT(u.nombre, ' ', u.apellido)
                 ), 0) as guias_total,
 
                 -- TOTAL HISTÓRICO: Facturación desde documentos_facturacion
