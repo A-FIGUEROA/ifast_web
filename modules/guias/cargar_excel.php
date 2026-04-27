@@ -802,7 +802,7 @@ $nombre_usuario = obtenerNombreUsuario();
 
             // Crear tabla de preview
             let tableHTML = '<table><thead><tr>';
-            tableHTML += '<th>N° Guía</th><th>Consignatario</th><th>RUC/DNI</th><th>Descripción</th><th>PCS</th><th>Peso (kg)</th><th>Valor FOB</th><th>Fecha Embarque</th>';
+            tableHTML += '<th>N° Guía</th><th>Consignatario</th><th>RUC/DNI</th><th>Descripción</th><th>PCS</th><th>Peso (kg)</th><th>Valor FOB</th><th>Gastos Adic.</th><th>Fecha Embarque</th>';
             tableHTML += '</tr></thead><tbody>';
 
             data.preview.forEach(row => {
@@ -814,6 +814,7 @@ $nombre_usuario = obtenerNombreUsuario();
                 tableHTML += `<td>${row.pcs}</td>`;
                 tableHTML += `<td>${row.peso_kg}</td>`;
                 tableHTML += `<td>$${row.valor_fob_usd}</td>`;
+                tableHTML += `<td>$${row.gastos_adicionales || '0.00'}</td>`;
                 tableHTML += `<td>${row.fecha_embarque || '-'}</td>`;
                 tableHTML += '</tr>';
             });

@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pcs = (int)($_POST['pcs'] ?? 0);
     $peso_kg = (float)($_POST['peso_kg'] ?? 0);
     $valor_fob_usd = (float)($_POST['valor_fob_usd'] ?? 0);
+    $gastos_adicionales = (float)($_POST['gastos_adicionales'] ?? 0);
     $fecha_embarque = limpiarDatos($_POST['fecha_embarque'] ?? '');
     $asesor = limpiarDatos($_POST['asesor'] ?? '');
     $estado = limpiarDatos($_POST['estado']);
@@ -64,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     pcs = :pcs,
                     peso_kg = :peso_kg,
                     valor_fob_usd = :valor_fob_usd,
+                    gastos_adicionales = :gastos_adicionales,
                     fecha_embarque = :fecha_embarque,
                     asesor = :asesor,
                     estado = :estado,
@@ -78,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':pcs', $pcs);
             $stmt->bindParam(':peso_kg', $peso_kg);
             $stmt->bindParam(':valor_fob_usd', $valor_fob_usd);
+            $stmt->bindParam(':gastos_adicionales', $gastos_adicionales);
             $stmt->bindParam(':fecha_embarque', $fecha_embarque);
             $stmt->bindParam(':asesor', $asesor);
             $stmt->bindParam(':estado', $estado);
@@ -504,14 +507,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="form-group">
-                            <label>Fecha de Embarque</label>
+                            <label>Gastos Adicionales</label>
                             <input
-                                type="date"
-                                name="fecha_embarque"
+                                type="number"
+                                name="gastos_adicionales"
                                 class="form-control"
-                                value="<?php echo $guia['fecha_embarque']; ?>"
+                                min="0"
+                                step="0.01"
+                                value="<?php echo $guia['gastos_adicionales'] ?? '0'; ?>"
                             >
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fecha de Embarque</label>
+                        <input
+                            type="date"
+                            name="fecha_embarque"
+                            class="form-control"
+                            value="<?php echo $guia['fecha_embarque']; ?>"
+                        >
                     </div>
 
                     <div class="form-group">

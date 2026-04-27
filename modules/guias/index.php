@@ -805,6 +805,7 @@ $guias = $stmt->fetchAll();
                                 <th>PCS</th>
                                 <th>Peso (kg)</th>
                                 <th>Valor FOB</th>
+                                <th>Gastos Adic.</th>
                                 <th>Fecha Embarque</th>
                                 <th>Asesor</th>
                                 <th>Estado</th>
@@ -823,6 +824,7 @@ $guias = $stmt->fetchAll();
                                 <td><?php echo $guia['pcs']; ?></td>
                                 <td><?php echo number_format($guia['peso_kg'], 2); ?></td>
                                 <td>$<?php echo number_format($guia['valor_fob_usd'], 2); ?></td>
+                                <td>$<?php echo number_format($guia['gastos_adicionales'] ?? 0, 2); ?></td>
                                 <td><?php echo $guia['fecha_embarque'] ? formatearFecha($guia['fecha_embarque'], 'd/m/Y') : '-'; ?></td>
                                 <td><?php echo htmlspecialchars($guia['asesor'] ?? '-'); ?></td>
                                 <td>

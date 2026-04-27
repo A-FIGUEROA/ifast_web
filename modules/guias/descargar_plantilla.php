@@ -18,8 +18,8 @@ $sheet = $spreadsheet->getActiveSheet();
 $sheet->setTitle('Guías');
 
 // Encabezados
-$headers = ['ID', '# GUIA', 'CONSIGNATARIO', 'CLIENTE', 'RUC/DNI', 'DESCRIPCION', 'PCS', 'PESO  MANIF. KG', 'VALOR FOB US$. ', 'FECHA DE EMBARQUE', 'ASESOR'];
-$columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+$headers = ['ID', '# GUIA', 'CONSIGNATARIO', 'CLIENTE', 'RUC/DNI', 'DESCRIPCION', 'PCS', 'PESO  MANIF. KG', 'VALOR FOB US$. ', 'FECHA DE EMBARQUE', 'ASESOR', 'GASTOS ADICIONALES'];
+$columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
 // Escribir encabezados
 foreach ($columns as $index => $col) {
@@ -49,7 +49,7 @@ $headerStyle = [
     ]
 ];
 
-$sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+$sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
 
 // Ajustar ancho de columnas
 $sheet->getColumnDimension('A')->setWidth(8);   // ID
@@ -63,6 +63,7 @@ $sheet->getColumnDimension('H')->setWidth(15);  // PESO MANIF. KG
 $sheet->getColumnDimension('I')->setWidth(15);  // VALOR FOB US$
 $sheet->getColumnDimension('J')->setWidth(18);  // FECHA DE EMBARQUE
 $sheet->getColumnDimension('K')->setWidth(25);  // ASESOR
+$sheet->getColumnDimension('L')->setWidth(20);  // GASTOS ADICIONALES
 
 // Agregar fila de ejemplo
 $sheet->setCellValue('A2', '1');
@@ -76,6 +77,7 @@ $sheet->setCellValue('H2', '8.25');
 $sheet->setCellValue('I2', '194.21');
 $sheet->setCellValue('J2', '1-sep');
 $sheet->setCellValue('K2', 'CARLOS RAMIREZ');
+$sheet->setCellValue('L2', '0.00');
 
 // Estilo de fila de ejemplo
 $exampleStyle = [
@@ -88,11 +90,11 @@ $exampleStyle = [
         'startColor' => ['rgb' => 'F0F0F0']
     ]
 ];
-$sheet->getStyle('A2:K2')->applyFromArray($exampleStyle);
+$sheet->getStyle('A2:L2')->applyFromArray($exampleStyle);
 
 // Agregar nota
 $sheet->setCellValue('A4', 'NOTA: Esta es una fila de ejemplo. El RUC/DNI debe coincidir exactamente con un cliente registrado para asignación automática. Elimínala antes de subir tu archivo.');
-$sheet->mergeCells('A4:K4');
+$sheet->mergeCells('A4:L4');
 $sheet->getStyle('A4')->applyFromArray([
     'font' => ['italic' => true, 'color' => ['rgb' => 'FF0000']],
     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]

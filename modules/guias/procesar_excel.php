@@ -70,6 +70,7 @@ try {
             $valor_fob_usd = (float)$worksheet->getCell('I' . $row)->getValue();
             $fecha_embarque_raw = $worksheet->getCell('J' . $row)->getValue();
             $asesor = trim($worksheet->getCell('K' . $row)->getValue());
+            $gastos_adicionales = (float)$worksheet->getCell('L' . $row)->getValue();
 
             // Convertir fecha
             $fecha_embarque = null;
@@ -193,6 +194,7 @@ try {
                 'pcs' => $pcs,
                 'peso_kg' => $peso_kg,
                 'valor_fob_usd' => $valor_fob_usd,
+                'gastos_adicionales' => $gastos_adicionales,
                 'fecha_embarque' => $fecha_embarque,
                 'asesor' => $asesor,
                 'cliente_id' => $cliente_id,
@@ -244,9 +246,9 @@ try {
 
         $stmt = $conn->prepare("
             INSERT INTO guias_masivas
-            (nro_guia, consignatario, cliente, documento_cliente, descripcion, pcs, peso_kg, valor_fob_usd, fecha_embarque, asesor, estado, cliente_id, metodo_ingreso, nombre_archivo_origen, creado_por)
+            (nro_guia, consignatario, cliente, documento_cliente, descripcion, pcs, peso_kg, valor_fob_usd, gastos_adicionales, fecha_embarque, asesor, estado, cliente_id, metodo_ingreso, nombre_archivo_origen, creado_por)
             VALUES
-            (:nro_guia, :consignatario, :cliente, :documento_cliente, :descripcion, :pcs, :peso_kg, :valor_fob_usd, :fecha_embarque, :asesor, 'PENDIENTE', :cliente_id, 'EXCEL', :nombre_archivo, :creado_por)
+            (:nro_guia, :consignatario, :cliente, :documento_cliente, :descripcion, :pcs, :peso_kg, :valor_fob_usd, :gastos_adicionales, :fecha_embarque, :asesor, 'PENDIENTE', :cliente_id, 'EXCEL', :nombre_archivo, :creado_por)
         ");
 
         $importados = 0;
@@ -260,6 +262,7 @@ try {
                 $stmt->bindParam(':pcs', $dato['pcs']);
                 $stmt->bindParam(':peso_kg', $dato['peso_kg']);
                 $stmt->bindParam(':valor_fob_usd', $dato['valor_fob_usd']);
+                $stmt->bindParam(':gastos_adicionales', $dato['gastos_adicionales']);
                 $stmt->bindParam(':fecha_embarque', $dato['fecha_embarque']);
                 $stmt->bindParam(':asesor', $dato['asesor']);
                 $stmt->bindParam(':cliente_id', $dato['cliente_id']);

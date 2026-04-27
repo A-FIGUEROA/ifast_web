@@ -329,6 +329,11 @@ if (!$guia) {
                 </div>
 
                 <div class="detail-row">
+                    <div class="detail-label">Gastos Adicionales:</div>
+                    <div class="detail-value">$<?php echo number_format($guia['gastos_adicionales'] ?? 0, 2); ?></div>
+                </div>
+
+                <div class="detail-row">
                     <div class="detail-label">Fecha de Embarque:</div>
                     <div class="detail-value"><?php echo $guia['fecha_embarque'] ? formatearFecha($guia['fecha_embarque'], 'd/m/Y') : '-'; ?></div>
                 </div>
