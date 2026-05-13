@@ -10,6 +10,10 @@ $database = new Database();
 $conn = $database->getConnection();
 $errores = [];
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $_SESSION['factura_form_token'] = uniqid('fac_', true);
+}
+
 // Obtener lista de clientes
 $stmt = $conn->query("SELECT id, tipo_documento, documento, nombre_razon_social, apellido FROM clientes ORDER BY nombre_razon_social ASC");
 $clientes = $stmt->fetchAll();
@@ -75,6 +79,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Pedidos seleccionados (IDs de pedidos pendientes)
     $pedidos_seleccionados = isset($_POST['pedidos_seleccionados']) ? $_POST['pedidos_seleccionados'] : [];
+
+    // Validar token anti-duplicado
+    if (empty($_POST['form_token']) || $_POST['form_token'] !== ($_SESSION['factura_form_token'] ?? '')) {
+        $errores[] = "Solicitud duplicada detectada. El documento ya fue generado o la página fue recargada.";
+    } else {
+        unset($_SESSION['factura_form_token']);
+    }
 
     // Validaciones
     if (empty($tipo_documento) || !in_array($tipo_documento, ['FACTURA', 'BOLETA', 'RECIBO'])) {
@@ -602,6 +613,7 @@ $tipo_usuario = obtenerTipoUsuario();
             <?php endif; ?>
 
             <form method="POST" id="formFacturacion" enctype="multipart/form-data">
+                <input type="hidden" name="form_token" value="<?php echo htmlspecialchars($_SESSION['factura_form_token'] ?? ''); ?>">
                 <div class="card">
                     <div class="section-title">📋 Tipo de Documento</div>
                     <div class="form-group">
@@ -1278,6 +1290,11 @@ $tipo_usuario = obtenerTipoUsuario();
                 document.getElementById('seccion_pedidos_pendientes').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
             }
+
+            // Bloquear botón para evitar doble submit
+            const btnSubmit = document.querySelector('button[type="submit"]');
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '⏳ Generando documento...';
         });
     </script>
 </body>
