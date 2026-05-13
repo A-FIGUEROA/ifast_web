@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descuento = filter_var($_POST['descuento'] ?? 0, FILTER_VALIDATE_FLOAT);
     $detalle_descuento = $_POST['detalle_descuento'] ?? '';
     $canal_aduanas = $_POST['canal_aduanas'] ?? '';
+    $comentario_adicional = $_POST['comentario_adicional'] ?? '';
 
     // Validar conversiones
     if ($peso_total === false) $peso_total = 0;
@@ -243,7 +244,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             subtotal = :subtotal,
                             igv = :igv,
                             total = :total,
-                            imagen_adjunta = :imagen_adjunta
+                            imagen_adjunta = :imagen_adjunta,
+                            comentario_adicional = :comentario_adicional
                         WHERE id = :id";
 
                 $stmt = $conn->prepare($sql);
@@ -272,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':igv', $igv);
                 $stmt->bindParam(':total', $total);
                 $stmt->bindParam(':imagen_adjunta', $imagen_adjunta);
+                $stmt->bindParam(':comentario_adicional', $comentario_adicional);
                 $stmt->bindParam(':id', $id);
 
                 $stmt->execute();
@@ -529,6 +532,11 @@ $tipo_usuario = obtenerTipoUsuario();
                         <input type="file" class="form-control" name="imagen" id="imagen"
                                accept="image/png,image/jpeg,image/jpg">
                         <small class="info-text">Formatos permitidos: PNG, JPEG, JPG (Máximo 5MB)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Comentario adicional</label>
+                        <textarea class="form-control" name="comentario_adicional" id="comentario_adicional"
+                                  rows="3" placeholder="Agregar un comentario adicional..."><?php echo htmlspecialchars($documento['comentario_adicional'] ?? ''); ?></textarea>
                     </div>
                 </div>
                 <div class="card totales-box">

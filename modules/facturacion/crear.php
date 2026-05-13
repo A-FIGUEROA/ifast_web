@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descuento = filter_var($_POST['descuento'] ?? 0, FILTER_VALIDATE_FLOAT);
     $detalle_descuento = $_POST['detalle_descuento'] ?? '';
     $canal_aduanas = $_POST['canal_aduanas'] ?? '';
+    $comentario_adicional = $_POST['comentario_adicional'] ?? '';
 
     // Pedidos seleccionados (IDs de pedidos pendientes)
     $pedidos_seleccionados = isset($_POST['pedidos_seleccionados']) ? $_POST['pedidos_seleccionados'] : [];
@@ -277,6 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             subtotal, igv, total,
                             nombre_archivo, ruta_archivo,
                             imagen_adjunta,
+                            comentario_adicional,
                             creado_por
                         ) VALUES (
                             :tipo_documento, :numero_documento, :cliente_id,
@@ -293,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             :subtotal, :igv, :total,
                             :nombre_archivo, :ruta_archivo,
                             :imagen_adjunta,
+                            :comentario_adicional,
                             :creado_por
                         )";
 
@@ -327,6 +330,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':nombre_archivo', $nombre_archivo);
                 $stmt->bindParam(':ruta_archivo', $ruta_archivo);
                 $stmt->bindParam(':imagen_adjunta', $imagen_adjunta);
+                $stmt->bindParam(':comentario_adicional', $comentario_adicional);
                 $stmt->bindParam(':creado_por', $usuario_id);
 
                 $stmt->execute();
@@ -811,6 +815,11 @@ $tipo_usuario = obtenerTipoUsuario();
                         <input type="file" class="form-control" name="imagen" id="imagen"
                                accept="image/png,image/jpeg,image/jpg">
                         <small class="info-text">Formatos permitidos: PNG, JPEG, JPG (Máximo 5MB)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Comentario adicional</label>
+                        <textarea class="form-control" name="comentario_adicional" id="comentario_adicional"
+                                  rows="3" placeholder="Agregar un comentario adicional..."></textarea>
                     </div>
                 </div>
 
