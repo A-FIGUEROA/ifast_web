@@ -577,6 +577,16 @@ $tipo_usuario = obtenerTipoUsuario();
             </div>
         </div>
 
+        <!-- COMENTARIO ADICIONAL -->
+        <?php if (!empty($doc['comentario_adicional'])): ?>
+        <div class="observaciones" style="margin-top: 20px;">
+            <div class="observaciones-title">💬 COMENTARIO ADICIONAL</div>
+            <div class="observaciones-content">
+                <?php echo nl2br(htmlspecialchars($doc['comentario_adicional'])); ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- IMAGEN ADJUNTA -->
         <?php if (!empty($doc['imagen_adjunta']) && file_exists($doc['imagen_adjunta'])): ?>
         <div class="observaciones" style="margin-top: 20px;">
