@@ -49,7 +49,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             'direccion' => $cliente['direccion'],
             'distrito' => $cliente['distrito'],
             'provincia' => $cliente['provincia'],
-            'departamento' => $cliente['departamento']
+            'departamento' => $cliente['departamento'],
+            'cliente_padre_id' => $cliente['cliente_padre_id']
         ]
     ]);
     exit();
@@ -67,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $distrito = limpiarDatos($_POST['distrito']);
     $provincia = limpiarDatos($_POST['provincia']);
     $departamento = limpiarDatos($_POST['departamento']);
+    $cliente_padre_id = !empty($_POST['cliente_padre_id']) ? (int)$_POST['cliente_padre_id'] : null;
 
     // Validaciones
     if ($tipo_documento === 'DNI' && !validarDNI($documento)) {
@@ -92,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errores[] = "El documento ya está registrado por otro cliente";
         } else {
             $stmt = $conn->prepare("
-                UPDATE clientes SET 
+                UPDATE clientes SET
                     tipo_documento = :tipo_documento,
                     documento = :documento,
                     nombre_razon_social = :nombre_razon_social,
@@ -103,10 +105,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     direccion = :direccion,
                     distrito = :distrito,
                     provincia = :provincia,
-                    departamento = :departamento
+                    departamento = :departamento,
+                    cliente_padre_id = :cliente_padre_id
                 WHERE id = :id
             ");
-            
+
             $stmt->bindParam(':tipo_documento', $tipo_documento);
             $stmt->bindParam(':documento', $documento);
             $stmt->bindParam(':nombre_razon_social', $nombre_razon_social);
@@ -118,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bindParam(':distrito', $distrito);
             $stmt->bindParam(':provincia', $provincia);
             $stmt->bindParam(':departamento', $departamento);
+            $stmt->bindParam(':cliente_padre_id', $cliente_padre_id, PDO::PARAM_INT);
             $stmt->bindParam(':id', $id);
 
             if ($stmt->execute()) {

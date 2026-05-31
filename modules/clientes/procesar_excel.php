@@ -64,7 +64,8 @@ try {
         'DIRECCION',
         'DISTRITO',
         'PROVINCIA',
-        'DEPARTAMENTO'
+        'DEPARTAMENTO',
+        'DOCUMENTO_PADRE'
     ];
 
     // Mapear indices de columnas
@@ -78,7 +79,7 @@ try {
                 break;
             }
         }
-        if (!$found && !in_array($expected, ['APELLIDO', 'TELIF'])) { // Campos opcionales
+        if (!$found && !in_array($expected, ['APELLIDO', 'TELIF', 'DOCUMENTO_PADRE'])) { // Campos opcionales
             throw new Exception("Falta la columna requerida: {$expected}");
         }
     }
@@ -98,6 +99,18 @@ try {
             continue;
         }
 
+        $doc_padre_raw = isset($column_map['DOCUMENTO_PADRE']) ? trim($row[$column_map['DOCUMENTO_PADRE']]) : '';
+        $cliente_padre_id = null;
+        if (!empty($doc_padre_raw)) {
+            $stmtPadre = $conn->prepare("SELECT id FROM clientes WHERE documento = :doc LIMIT 1");
+            $stmtPadre->bindParam(':doc', $doc_padre_raw);
+            $stmtPadre->execute();
+            $padre = $stmtPadre->fetch();
+            if ($padre) {
+                $cliente_padre_id = $padre['id'];
+            }
+        }
+
         $registro = [
             'fila' => $i + 1,
             'tipo_documento' => isset($column_map['TIPO_DOC']) ? trim($row[$column_map['TIPO_DOC']]) : '',
@@ -111,6 +124,7 @@ try {
             'distrito' => isset($column_map['DISTRITO']) ? trim($row[$column_map['DISTRITO']]) : '',
             'provincia' => isset($column_map['PROVINCIA']) ? trim($row[$column_map['PROVINCIA']]) : '',
             'departamento' => isset($column_map['DEPARTAMENTO']) ? trim($row[$column_map['DEPARTAMENTO']]) : '',
+            'cliente_padre_id' => $cliente_padre_id,
             'errores' => []
         ];
 
@@ -202,11 +216,11 @@ try {
         INSERT INTO clientes (
             tipo_documento, documento, nombre_razon_social, apellido,
             email, telif, celular, direccion, distrito, provincia, departamento,
-            creado_por
+            creado_por, cliente_padre_id
         ) VALUES (
             :tipo_documento, :documento, :nombre_razon_social, :apellido,
             :email, :telif, :celular, :direccion, :distrito, :provincia, :departamento,
-            :creado_por
+            :creado_por, :cliente_padre_id
         )
     ");
 
@@ -224,7 +238,8 @@ try {
                 ':distrito' => $registro['distrito'],
                 ':provincia' => $registro['provincia'],
                 ':departamento' => $registro['departamento'],
-                ':creado_por' => $usuario_id
+                ':creado_por' => $usuario_id,
+                ':cliente_padre_id' => $registro['cliente_padre_id']
             ]);
             $insertados++;
         } catch (PDOException $e) {

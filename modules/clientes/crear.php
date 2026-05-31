@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $distrito = limpiarDatos($_POST['distrito']);
     $provincia = limpiarDatos($_POST['provincia']);
     $departamento = limpiarDatos($_POST['departamento']);
+    $cliente_padre_id = !empty($_POST['cliente_padre_id']) ? (int)$_POST['cliente_padre_id'] : null;
 
     // Validaciones
     if (!in_array($tipo_documento, ['DNI', 'RUC'])) {
@@ -77,11 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     INSERT INTO clientes (
                         tipo_documento, documento, nombre_razon_social, apellido,
                         email, telif, celular, direccion, distrito, provincia, departamento,
-                        creado_por
+                        creado_por, cliente_padre_id
                     ) VALUES (
                         :tipo_documento, :documento, :nombre_razon_social, :apellido,
                         :email, :telif, :celular, :direccion, :distrito, :provincia, :departamento,
-                        :creado_por
+                        :creado_por, :cliente_padre_id
                     )
                 ");
 
@@ -97,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':provincia', $provincia);
                 $stmt->bindParam(':departamento', $departamento);
                 $stmt->bindParam(':creado_por', $usuario_id);
+                $stmt->bindParam(':cliente_padre_id', $cliente_padre_id, PDO::PARAM_INT);
 
                 if ($stmt->execute()) {
                     $cliente_id = $conn->lastInsertId();

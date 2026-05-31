@@ -26,7 +26,8 @@ $headers = [
     'DIRECCION',
     'DISTRITO',
     'PROVINCIA',
-    'DEPARTAMENTO'
+    'DEPARTAMENTO',
+    'DOCUMENTO_PADRE'
 ];
 
 // Escribir encabezados
@@ -64,9 +65,9 @@ foreach ($headers as $header) {
 
 // Datos de ejemplo (3 filas)
 $ejemplos = [
-    ['DNI', '12345678', 'Juan Pérez', 'García', 'juan.perez@email.com', '014567890', '987654321', 'Av. Ejemplo 123', 'Miraflores', 'Lima', 'Lima'],
-    ['RUC', '20123456789', 'Empresa SAC', '', 'contacto@empresa.com', '', '999888777', 'Jr. Comercio 456', 'San Isidro', 'Lima', 'Lima'],
-    ['DNI', '87654321', 'María López', 'Rodríguez', 'maria.lopez@email.com', '', '912345678', 'Calle Los Olivos 789', 'Surco', 'Lima', 'Lima']
+    ['DNI', '12345678', 'Juan Pérez', 'García', 'juan.perez@email.com', '014567890', '987654321', 'Av. Ejemplo 123', 'Miraflores', 'Lima', 'Lima', ''],
+    ['RUC', '20123456789', 'Empresa SAC', '', 'contacto@empresa.com', '', '999888777', 'Jr. Comercio 456', 'San Isidro', 'Lima', 'Lima', ''],
+    ['DNI', '87654321', 'María López', 'Rodríguez', 'maria.lopez@email.com', '', '912345678', 'Calle Los Olivos 789', 'Surco', 'Lima', 'Lima', '12345678'],
 ];
 
 $row = 2;
@@ -114,6 +115,7 @@ $instructions = [
     ['2. CAMPOS OPCIONALES:'],
     ['   - APELLIDO: Apellidos (opcional para personas naturales)'],
     ['   - TELIF: Teléfono fijo (opcional)'],
+    ['   - DOCUMENTO_PADRE: Documento del cliente principal al que pertenece (dejar vacío si es cliente principal)'],
     [''],
     ['3. FORMATO:'],
     ['   - No modificar los nombres de las columnas'],

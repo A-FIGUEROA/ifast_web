@@ -21,14 +21,17 @@ $registros_por_pagina = 10;
 $buscar = isset($_GET['buscar']) ? limpiarDatos($_GET['buscar']) : '';
 
 // Query base con JOIN a usuarios para obtener el nombre del que registró
-$query_count = "SELECT COUNT(*) as total FROM clientes c";
-$query_select = "SELECT c.*, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario
+$query_count = "SELECT COUNT(*) as total FROM clientes c LEFT JOIN clientes p ON c.cliente_padre_id = p.id";
+$query_select = "SELECT c.*,
+                 CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario,
+                 TRIM(CONCAT(p.nombre_razon_social, ' ', COALESCE(p.apellido, ''))) AS nombre_padre
                  FROM clientes c
-                 LEFT JOIN usuarios u ON c.creado_por = u.id";
+                 LEFT JOIN usuarios u ON c.creado_por = u.id
+                 LEFT JOIN clientes p ON c.cliente_padre_id = p.id";
 
 // Si hay búsqueda
 if (!empty($buscar)) {
-    $where = " WHERE c.nombre_razon_social LIKE :buscar1 OR c.documento LIKE :buscar2 OR c.email LIKE :buscar3";
+    $where = " WHERE (c.nombre_razon_social LIKE :buscar1 OR c.documento LIKE :buscar2 OR c.email LIKE :buscar3 OR p.nombre_razon_social LIKE :buscar4 OR p.documento LIKE :buscar5)";
     $query_count .= $where;
     $query_select .= $where;
 }
@@ -42,6 +45,8 @@ if (!empty($buscar)) {
     $stmt->bindValue(':buscar1', $buscar_param);
     $stmt->bindValue(':buscar2', $buscar_param);
     $stmt->bindValue(':buscar3', $buscar_param);
+    $stmt->bindValue(':buscar4', $buscar_param);
+    $stmt->bindValue(':buscar5', $buscar_param);
 }
 $stmt->execute();
 $total_clientes = $stmt->fetch()['total'];
@@ -56,11 +61,18 @@ if (!empty($buscar)) {
     $stmt->bindValue(':buscar1', $buscar_param);
     $stmt->bindValue(':buscar2', $buscar_param);
     $stmt->bindValue(':buscar3', $buscar_param);
+    $stmt->bindValue(':buscar4', $buscar_param);
+    $stmt->bindValue(':buscar5', $buscar_param);
 }
 $stmt->bindValue(':limit', $paginacion['registros_por_pagina'], PDO::PARAM_INT);
 $stmt->bindValue(':offset', $paginacion['offset'], PDO::PARAM_INT);
 $stmt->execute();
 $clientes = $stmt->fetchAll();
+
+// Cargar clientes principales para el select "Pertenece a"
+$stmt_padres = $conn->prepare("SELECT id, nombre_razon_social, apellido FROM clientes WHERE cliente_padre_id IS NULL ORDER BY nombre_razon_social ASC");
+$stmt_padres->execute();
+$clientes_principales = $stmt_padres->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -670,6 +682,7 @@ $clientes = $stmt->fetchAll();
                                     <th>Email</th>
                                     <th>Celular</th>
                                     <th>Distrito</th>
+                                    <th>Pertenece a</th>
                                     <th>Registrado por</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -693,6 +706,15 @@ $clientes = $stmt->fetchAll();
                                     <td><?php echo $cliente['email']; ?></td>
                                     <td><?php echo $cliente['celular']; ?></td>
                                     <td><?php echo $cliente['distrito']; ?></td>
+                                    <td>
+                                        <?php if (!empty($cliente['nombre_padre'])): ?>
+                                            <span class="badge" style="background: #fff3e0; color: #e65100;">
+                                                👥 <?php echo htmlspecialchars($cliente['nombre_padre']); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="color: #27ae60; font-size: 0.78rem; font-weight: 600;">★ Principal</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?php if (!empty($cliente['nombre_usuario'])): ?>
                                             <span class="badge badge-dni" style="background: #e8f5e9; color: #2e7d32;">
@@ -871,6 +893,15 @@ $clientes = $stmt->fetchAll();
                             <input type="text" class="form-control" name="departamento" required>
                         </div>
                     </div>
+
+                    <div class="section-title">🔗 Vínculo</div>
+                    <div class="form-group">
+                        <label>Pertenece a (opcional)</label>
+                        <select class="form-control" name="cliente_padre_id" id="crear_cliente_padre_id">
+                            <option value="">— Cliente Principal —</option>
+                        </select>
+                        <small class="info-text">Si es un consignatario, selecciona el cliente al que pertenece</small>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -957,6 +988,15 @@ $clientes = $stmt->fetchAll();
                             <input type="text" class="form-control" name="departamento" id="editar_departamento" required>
                         </div>
                     </div>
+
+                    <div class="section-title">🔗 Vínculo</div>
+                    <div class="form-group">
+                        <label>Pertenece a (opcional)</label>
+                        <select class="form-control" name="cliente_padre_id" id="editar_cliente_padre_id">
+                            <option value="">— Cliente Principal —</option>
+                        </select>
+                        <small class="info-text">Si es un consignatario, selecciona el cliente al que pertenece</small>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -970,6 +1010,25 @@ $clientes = $stmt->fetchAll();
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
 
     <script>
+        const clientesPrincipales = <?php echo json_encode(array_values($clientes_principales)); ?>;
+
+        function poblarSelectPadre(selectId, excluirId = null, valorActual = null) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">— Cliente Principal —</option>';
+            clientesPrincipales.forEach(c => {
+                if (c.id != excluirId) {
+                    const nombre = (c.apellido && c.apellido.trim())
+                        ? c.nombre_razon_social + ' ' + c.apellido
+                        : c.nombre_razon_social;
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = nombre;
+                    if (valorActual && String(c.id) === String(valorActual)) opt.selected = true;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
         // ========================================
         // FUNCIONES MODAL CREAR
         // ========================================
@@ -977,6 +1036,7 @@ $clientes = $stmt->fetchAll();
             document.getElementById('modalCrear').classList.add('active');
             document.getElementById('formCrear').reset();
             document.getElementById('alertCrear').innerHTML = '';
+            poblarSelectPadre('crear_cliente_padre_id');
         }
 
         function cerrarModalCrear() {
@@ -1016,6 +1076,7 @@ $clientes = $stmt->fetchAll();
                         document.getElementById('editar_distrito').value = data.cliente.distrito;
                         document.getElementById('editar_provincia').value = data.cliente.provincia;
                         document.getElementById('editar_departamento').value = data.cliente.departamento;
+                        poblarSelectPadre('editar_cliente_padre_id', data.cliente.id, data.cliente.cliente_padre_id);
                         document.getElementById('alertEditar').innerHTML = '';
                     } else {
                         mostrarAlerta('alertEditar', data.message, 'danger');
