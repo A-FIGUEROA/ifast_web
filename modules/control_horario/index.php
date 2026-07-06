@@ -587,6 +587,7 @@ $conteo_estados = obtenerConteoEstados($conn);
                             <th>Total Horas Trabajadas</th>
                             <th>Total Refrigerio</th>
                             <th>Promedio Diario</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -606,6 +607,11 @@ $conteo_estados = obtenerConteoEstados($conn);
                             <td><strong><?php echo $usuario['total_trabajado_format']; ?></strong></td>
                             <td><?php echo $usuario['total_refrigerio_format']; ?></td>
                             <td><?php echo $usuario['promedio_diario_format']; ?></td>
+                            <td>
+                                <button class="btn-ver" onclick="location.href='calendario_usuario.php?usuario_id=<?php echo $usuario['id']; ?>&mes=<?php echo $mes; ?>'">
+                                    <i class='bx bx-calendar'></i> Ver Calendario
+                                </button>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

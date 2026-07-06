@@ -4,6 +4,9 @@
  * Sistema de registro de tiempo de trabajo
  */
 
+// Minutos que se consideran una jornada completa (8 horas)
+define('MINUTOS_JORNADA_COMPLETA', 480);
+
 /**
  * Obtiene el estado actual del usuario en el día de hoy
  * @param PDO $conn Conexión a la base de datos
@@ -460,4 +463,70 @@ function obtenerConteoEstados($conn) {
         error_log("Error en obtenerConteoEstados: " . $e->getMessage());
         return ['CONECTADO' => 0, 'REFRIGERIO' => 0, 'DESCONECTADO' => 0];
     }
+}
+
+/**
+ * Obtiene los datos de asistencia de un usuario para cada día de un mes,
+ * indexados por número de día (1-31), listos para pintar un calendario.
+ * @param PDO $conn Conexión a la base de datos
+ * @param int $usuario_id ID del usuario
+ * @param string $mes Mes en formato Y-m
+ * @return array Datos indexados por día del mes
+ */
+function obtenerCalendarioMensualUsuario($conn, $usuario_id, $mes) {
+    try {
+        $stmt = $conn->prepare("
+            SELECT
+                fecha,
+                hora_inicio,
+                hora_fin,
+                tiempo_trabajado,
+                tiempo_refrigerio,
+                estado_actual
+            FROM sesiones_trabajo
+            WHERE usuario_id = ?
+              AND DATE_FORMAT(fecha, '%Y-%m') = ?
+        ");
+        $stmt->execute([$usuario_id, $mes]);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $dias = [];
+        foreach ($filas as $fila) {
+            $dia_num = (int)date('j', strtotime($fila['fecha']));
+            $fila['tiempo_trabajado_format'] = formatearTiempo($fila['tiempo_trabajado']);
+            $fila['tiempo_refrigerio_format'] = formatearTiempo($fila['tiempo_refrigerio']);
+            $dias[$dia_num] = $fila;
+        }
+
+        return $dias;
+
+    } catch (PDOException $e) {
+        error_log("Error en obtenerCalendarioMensualUsuario: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Determina el estado visual de un día en el calendario de asistencia
+ * @param string $fecha Fecha en formato Y-m-d
+ * @param array|null $registro Registro de sesiones_trabajo de ese día (o null si no existe)
+ * @return string 'completo' | 'parcial' | 'ausente' | 'descanso' | 'futuro'
+ */
+function estadoDiaCalendario($fecha, $registro) {
+    if (strtotime($fecha) > strtotime(date('Y-m-d'))) {
+        return 'futuro';
+    }
+
+    $tiempo_trabajado = $registro['tiempo_trabajado'] ?? 0;
+
+    if ($tiempo_trabajado > 0) {
+        return $tiempo_trabajado >= MINUTOS_JORNADA_COMPLETA ? 'completo' : 'parcial';
+    }
+
+    // Domingo (N=7) sin registro se considera descanso, no ausencia
+    if ((int)date('N', strtotime($fecha)) === 7) {
+        return 'descanso';
+    }
+
+    return 'ausente';
 }
