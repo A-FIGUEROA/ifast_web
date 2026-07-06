@@ -312,18 +312,19 @@ function obtenerReporteSemanal($conn, $usuario_id, $fecha_inicio = null) {
 }
 
 /**
- * Obtiene reporte mensual de todos los usuarios
+ * Obtiene reporte mensual de todos los usuarios (o de un usuario específico)
  * @param PDO $conn Conexión a la base de datos
  * @param string $mes Mes en formato Y-m
+ * @param int|null $usuario_id Si se indica, filtra el reporte a un solo usuario
  * @return array Lista de usuarios con sus totales
  */
-function obtenerReporteMensual($conn, $mes = null) {
+function obtenerReporteMensual($conn, $mes = null, $usuario_id = null) {
     if (!$mes) {
         $mes = date('Y-m');
     }
 
     try {
-        $stmt = $conn->prepare("
+        $sql = "
             SELECT
                 u.id,
                 u.nombre,
@@ -339,10 +340,22 @@ function obtenerReporteMensual($conn, $mes = null) {
                 AND DATE_FORMAT(st.fecha, '%Y-%m') = ?
                 AND st.tiempo_trabajado > 0
             WHERE u.tipo IN ('SUPERVISOR', 'VENTAS', 'ASESOR')
+        ";
+
+        $params = [$mes];
+
+        if (!empty($usuario_id)) {
+            $sql .= " AND u.id = ?";
+            $params[] = $usuario_id;
+        }
+
+        $sql .= "
             GROUP BY u.id, u.nombre, u.apellido, u.email, u.tipo
             ORDER BY total_trabajado DESC
-        ");
-        $stmt->execute([$mes]);
+        ";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
         $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Formatear datos

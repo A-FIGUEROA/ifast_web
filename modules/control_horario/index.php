@@ -20,11 +20,44 @@ $conn = $database->getConnection();
 $tipo_usuario = obtenerTipoUsuario();
 $nombre_usuario = obtenerNombreUsuario();
 
-// Fecha actual (puede ser modificada por filtro)
+// Vista activa: diario (por defecto) o mensual
+$vista = ($_GET['vista'] ?? 'diario') === 'mensual' ? 'mensual' : 'diario';
+
+// Fecha actual (puede ser modificada por filtro) - vista diaria
 $fecha = $_GET['fecha'] ?? date('Y-m-d');
 
-// Obtener reporte diario
-$usuarios = obtenerReporteDiario($conn, $fecha);
+// Mes actual (puede ser modificado por filtro) - vista mensual
+$mes = $_GET['mes'] ?? date('Y-m');
+
+// Filtro por usuario (aplica a ambas vistas)
+$usuario_filtro = (isset($_GET['usuario_id']) && $_GET['usuario_id'] !== '') ? (int)$_GET['usuario_id'] : null;
+
+// Lista de usuarios para el selector de filtro
+$stmt_usuarios_filtro = $conn->query("
+    SELECT id, nombre, apellido
+    FROM usuarios
+    WHERE tipo IN ('SUPERVISOR', 'VENTAS', 'ASESOR')
+    ORDER BY nombre ASC, apellido ASC
+");
+$lista_usuarios_filtro = $stmt_usuarios_filtro->fetchAll(PDO::FETCH_ASSOC);
+
+if ($vista === 'mensual') {
+    // Obtener reporte mensual (opcionalmente filtrado por usuario)
+    $reporte_mensual = obtenerReporteMensual($conn, $mes, $usuario_filtro);
+
+    $meses_es = [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
+                 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'];
+    $mes_label = $meses_es[(int)date('n', strtotime($mes . '-01'))] . ' ' . date('Y', strtotime($mes . '-01'));
+} else {
+    // Obtener reporte diario
+    $usuarios = obtenerReporteDiario($conn, $fecha);
+
+    if ($usuario_filtro) {
+        $usuarios = array_values(array_filter($usuarios, function ($u) use ($usuario_filtro) {
+            return (int)$u['id'] === $usuario_filtro;
+        }));
+    }
+}
 
 // Obtener conteo de estados
 $conteo_estados = obtenerConteoEstados($conn);
@@ -104,15 +137,20 @@ $conteo_estados = obtenerConteoEstados($conn);
             color: #2c3e50;
         }
 
-        .filter-card input[type="date"] {
+        .filter-card input[type="date"],
+        .filter-card input[type="month"],
+        .filter-card select {
             padding: 10px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 0.95rem;
             transition: border-color 0.2s;
+            font-family: inherit;
         }
 
-        .filter-card input[type="date"]:focus {
+        .filter-card input[type="date"]:focus,
+        .filter-card input[type="month"]:focus,
+        .filter-card select:focus {
             outline: none;
             border-color: #00509d;
         }
@@ -131,6 +169,18 @@ $conteo_estados = obtenerConteoEstados($conn);
         .btn-filter:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 80, 157, 0.3);
+        }
+
+        a.btn-filter {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-tab-inactive {
+            background: #ecf0f1 !important;
+            color: #7f8c8d !important;
         }
 
         /* Cards de resumen */
@@ -340,10 +390,32 @@ $conteo_estados = obtenerConteoEstados($conn);
                 <p>Monitoreo en tiempo real del registro de jornadas laborales</p>
             </div>
 
+            <!-- Selector de vista -->
+            <div class="filter-card">
+                <a href="index.php?vista=diario" class="btn-filter <?php echo $vista === 'diario' ? '' : 'btn-tab-inactive'; ?>">
+                    <i class='bx bx-calendar-alt'></i> Vista Diaria
+                </a>
+                <a href="index.php?vista=mensual" class="btn-filter <?php echo $vista === 'mensual' ? '' : 'btn-tab-inactive'; ?>">
+                    <i class='bx bx-calendar'></i> Vista Mensual
+                </a>
+            </div>
+
+            <?php if ($vista === 'diario'): ?>
             <!-- Filtro de fecha -->
             <div class="filter-card">
                 <label for="fecha">📅 Fecha:</label>
                 <input type="date" id="fecha" name="fecha" value="<?php echo $fecha; ?>" max="<?php echo date('Y-m-d'); ?>">
+
+                <label for="usuario_id_diario">👤 Usuario:</label>
+                <select id="usuario_id_diario">
+                    <option value="">Todos</option>
+                    <?php foreach ($lista_usuarios_filtro as $u): ?>
+                    <option value="<?php echo $u['id']; ?>" <?php echo $usuario_filtro === (int)$u['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($u['nombre'] . ' ' . $u['apellido']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+
                 <button class="btn-filter" onclick="aplicarFiltro()">
                     <i class='bx bx-filter-alt'></i> Aplicar Filtro
                 </button>
@@ -471,14 +543,102 @@ $conteo_estados = obtenerConteoEstados($conn);
                 </div>
                 <?php endif; ?>
             </div>
+
+            <?php else: ?>
+            <!-- Filtro mensual -->
+            <div class="filter-card">
+                <label for="mes">📅 Mes:</label>
+                <input type="month" id="mes" name="mes" value="<?php echo $mes; ?>" max="<?php echo date('Y-m'); ?>">
+
+                <label for="usuario_id_mensual">👤 Usuario:</label>
+                <select id="usuario_id_mensual">
+                    <option value="">Todos</option>
+                    <?php foreach ($lista_usuarios_filtro as $u): ?>
+                    <option value="<?php echo $u['id']; ?>" <?php echo $usuario_filtro === (int)$u['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($u['nombre'] . ' ' . $u['apellido']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <button class="btn-filter" onclick="aplicarFiltroMensual()">
+                    <i class='bx bx-filter-alt'></i> Aplicar Filtro
+                </button>
+                <button class="btn-filter" onclick="location.href='index.php?vista=mensual'">
+                    <i class='bx bx-refresh'></i> Mes Actual
+                </button>
+            </div>
+
+            <!-- Tabla de totales mensuales -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>
+                        <i class='bx bx-group'></i>
+                        Totales Mensuales - <?php echo $mes_label; ?>
+                    </h3>
+                </div>
+
+                <?php if (count($reporte_mensual) > 0): ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Días Trabajados</th>
+                            <th>Total Horas Trabajadas</th>
+                            <th>Total Refrigerio</th>
+                            <th>Promedio Diario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($reporte_mensual as $usuario): ?>
+                        <tr>
+                            <td>
+                                <strong><?php echo htmlspecialchars($usuario['nombre'] . ' ' . $usuario['apellido']); ?></strong>
+                                <br>
+                                <small style="color: #95a5a6;"><?php echo htmlspecialchars($usuario['email']); ?></small>
+                            </td>
+                            <td>
+                                <span class="badge-estado <?php echo strtolower($usuario['tipo']); ?>">
+                                    <?php echo htmlspecialchars($usuario['tipo']); ?>
+                                </span>
+                            </td>
+                            <td><?php echo (int)$usuario['dias_trabajados']; ?></td>
+                            <td><strong><?php echo $usuario['total_trabajado_format']; ?></strong></td>
+                            <td><?php echo $usuario['total_refrigerio_format']; ?></td>
+                            <td><?php echo $usuario['promedio_diario_format']; ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php else: ?>
+                <div class="empty-state">
+                    <i class='bx bx-calendar-x'></i>
+                    <p>No hay registros para este mes</p>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
     </main>
 
     <script>
         function aplicarFiltro() {
             const fecha = document.getElementById('fecha').value;
+            const usuarioId = document.getElementById('usuario_id_diario').value;
             if (fecha) {
-                window.location.href = `index.php?fecha=${fecha}`;
+                let url = `index.php?vista=diario&fecha=${fecha}`;
+                if (usuarioId) url += `&usuario_id=${usuarioId}`;
+                window.location.href = url;
+            }
+        }
+
+        function aplicarFiltroMensual() {
+            const mes = document.getElementById('mes').value;
+            const usuarioId = document.getElementById('usuario_id_mensual').value;
+            if (mes) {
+                let url = `index.php?vista=mensual&mes=${mes}`;
+                if (usuarioId) url += `&usuario_id=${usuarioId}`;
+                window.location.href = url;
             }
         }
 
@@ -486,10 +646,12 @@ $conteo_estados = obtenerConteoEstados($conn);
             window.location.href = `detalle_usuario.php?usuario_id=${usuarioId}&fecha=${fecha}`;
         }
 
-        // Auto-refresh cada 30 segundos
+        <?php if ($vista === 'diario'): ?>
+        // Auto-refresh cada 30 segundos (solo en vista diaria, monitoreo en tiempo real)
         setInterval(() => {
             location.reload();
         }, 30000);
+        <?php endif; ?>
     </script>
 </body>
 </html>
