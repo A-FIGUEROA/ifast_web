@@ -5,6 +5,7 @@ ini_set('display_errors', 0);
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../vendor/autoload.php';
+require_once 'archivos_helper.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -43,17 +44,19 @@ try {
 
     $conn->beginTransaction();
 
+    $mailConfig = require '../../config/mail.php';
+
     $mail = new PHPMailer(true);
     $mail->isSMTP();
-    $mail->Host       = 'ifast.com.pe';
+    $mail->Host       = $mailConfig['host'];
     $mail->SMTPAuth   = true;
-    $mail->Username   = 'ventas@ifast.com.pe';
-    $mail->Password   = '*VO=ndl*&PB0e&L6';
+    $mail->Username   = $mailConfig['username'];
+    $mail->Password   = $mailConfig['password'];
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-    $mail->Port       = 465;
+    $mail->Port       = $mailConfig['port'];
     $mail->CharSet    = 'UTF-8';
 
-    $mail->setFrom('ventas@ifast.com.pe', 'IFAST - Sistema de Embarques');
+    $mail->setFrom($mailConfig['from_email'], $mailConfig['from_name']);
 
     $correos_array = array_map('trim', explode(',', $correos_destino));
     foreach ($correos_array as $correo) {
@@ -101,12 +104,22 @@ try {
     $mail->isHTML(true);
     $mail->Body = $body;
 
+    // SEGURIDAD: nunca confiar en rutas de archivo enviadas por el cliente.
+    // Se recalcula la lista de archivos legítimos de esta guía en el servidor
+    // y solo se adjunta lo que el cliente marcó Y que además exista en esa lista.
     $archivos_adjuntos = [];
     if (isset($_POST['archivos']) && is_array($_POST['archivos'])) {
-        foreach ($_POST['archivos'] as $archivo_ruta) {
-            if (file_exists($archivo_ruta)) {
-                $mail->addAttachment($archivo_ruta);
-                $archivos_adjuntos[] = $archivo_ruta;
+        $archivos_disponibles = obtenerArchivosEmbarque($conn, $id_guia);
+        $mapa_archivos = [];
+        foreach ($archivos_disponibles as $archivo) {
+            $mapa_archivos[$archivo['key']] = $archivo['ruta'];
+        }
+
+        foreach ($_POST['archivos'] as $archivo_key) {
+            if (isset($mapa_archivos[$archivo_key]) && file_exists($mapa_archivos[$archivo_key])) {
+                $ruta = $mapa_archivos[$archivo_key];
+                $mail->addAttachment($ruta);
+                $archivos_adjuntos[] = $ruta;
             }
         }
     }

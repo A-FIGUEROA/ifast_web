@@ -335,6 +335,14 @@ $guias = $stmt->fetchAll();
             font-size: 0.9rem;
         }
 
+        /* Columnas de contenido corto: se ajustan a su contenido en vez de
+           repartirse el ancho sobrante de la tabla (N° Guía, Documento, etc.) */
+        th.col-fit,
+        td.col-fit {
+            width: 1%;
+            white-space: nowrap;
+        }
+
         tbody tr {
             transition: all 0.3s;
         }
@@ -624,31 +632,31 @@ $guias = $stmt->fetchAll();
                         <table>
                             <thead>
                                 <tr>
-                                    <th>N° Guía</th>
+                                    <th class="col-fit">N° Guía</th>
                                     <th>Cliente</th>
-                                    <th>Documento</th>
-                                    <th>Valor USD</th>
+                                    <th class="col-fit">Documento</th>
+                                    <th class="col-fit">Valor USD</th>
                                     <th>Consignatario</th>
-                                    <th>Usuario Registro</th>
-                                    <th>Estado Envío</th>
-                                    <th>Fecha</th>
-                                    <th>Acciones</th>
+                                    <th class="col-fit">Usuario Registro</th>
+                                    <th class="col-fit">Estado Envío</th>
+                                    <th class="col-fit">Fecha</th>
+                                    <th class="col-fit">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($guias as $guia): ?>
                                 <tr>
-                                    <td><strong><?php echo htmlspecialchars($guia['nro_guia']); ?></strong></td>
+                                    <td class="col-fit"><strong><?php echo htmlspecialchars($guia['nro_guia']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($guia['nombre_completo']); ?></td>
-                                    <td><?php echo htmlspecialchars($guia['documento']); ?></td>
-                                    <td><strong>$<?php echo number_format($guia['valor_usd'], 2); ?></strong></td>
+                                    <td class="col-fit"><?php echo htmlspecialchars($guia['documento']); ?></td>
+                                    <td class="col-fit"><strong>$<?php echo number_format($guia['valor_usd'], 2); ?></strong></td>
                                     <td><?php echo htmlspecialchars($guia['consignatario']); ?></td>
-                                    <td>
+                                    <td class="col-fit">
                                         <span style="color: #00509d; font-weight: 600;">
                                             👤 <?php echo htmlspecialchars($guia['usuario_registro'] ?? 'N/A'); ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="col-fit">
                                         <?php if ($guia['estado_envio'] === 'ENVIADO'): ?>
                                             <span class="badge badge-enviado">
                                                 ✅ ENVIADO
@@ -664,8 +672,8 @@ $guias = $stmt->fetchAll();
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo date('d/m/Y', strtotime($guia['fecha_creacion'])); ?></td>
-                                    <td>
+                                    <td class="col-fit"><?php echo date('d/m/Y', strtotime($guia['fecha_creacion'])); ?></td>
+                                    <td class="col-fit">
                                         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                             <button onclick="abrirModalVer(<?php echo $guia['id_guia']; ?>)"
                                                class="btn btn-small"
@@ -822,7 +830,7 @@ $guias = $stmt->fetchAll();
                                 <div class="archivo-item">
                                     <input type="checkbox"
                                            name="archivos[]"
-                                           value="${archivo.ruta}"
+                                           value="${archivo.key}"
                                            ${archivo.auto_seleccionar ? 'checked' : ''}>
                                     <div class="archivo-info">
                                         <div class="archivo-nombre">${archivo.nombre}</div>

@@ -240,22 +240,6 @@
                 <img src="assets/logo/login_banner.jpg" alt="iFast Banner">
             </div>
         </div>
-
-        <div class="login-right">
-            <div class="login-header">
-                <h2>Iniciar Sesión</h2>
-                <p>Ingresa tus credenciales para acceder</p>
-            </div>
-
-            <div id="alert-container"></div>
-
-            <form id="loginForm" method="POST">
-                <div class="form-group">
-                    <label for="email">Correo Electrónico</label>
-                    <div class="input-wrapper">
-                        <i>📧</i>
-                        <input 
-                            type="email" 
                             class="form-control" 
                             id="email" 
                             name="email" 
