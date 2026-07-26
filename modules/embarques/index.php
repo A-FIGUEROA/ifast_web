@@ -246,6 +246,17 @@ $guias = $stmt->fetchAll();
             background: #229954;
         }
 
+        .btn-email-outline {
+            background: transparent;
+            color: #27ae60;
+            border: 1.5px solid #27ae60;
+        }
+
+        .btn-email-outline:hover {
+            background: #27ae60;
+            color: white;
+        }
+
         .btn-excel {
             background: #27ae60;
             color: white;
@@ -298,6 +309,41 @@ $guias = $stmt->fetchAll();
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* MOBILE MENU TOGGLE (solo visible en pantallas angostas) */
+        .menu-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            font-size: 1.3rem;
+            cursor: pointer;
+            flex: none;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1400;
+        }
+
+        .sidebar-backdrop.show {
+            display: block;
         }
 
         .date-filter input {
@@ -478,6 +524,8 @@ $guias = $stmt->fetchAll();
 
         .archivo-info {
             flex: 1;
+            min-width: 0;
+            overflow-wrap: break-word;
         }
 
         .archivo-nombre {
@@ -590,8 +638,68 @@ $guias = $stmt->fetchAll();
             .sidebar {
                 transform: translateX(-100%);
             }
+            .sidebar.mobile-open {
+                transform: translateX(0) !important;
+                z-index: 1500;
+            }
             .main-content {
                 margin-left: 0;
+            }
+            .menu-toggle {
+                display: inline-flex;
+            }
+            .header {
+                padding: 16px 20px;
+            }
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            .content {
+                padding: 16px;
+            }
+            .card {
+                padding: 16px;
+            }
+            .card-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-group,
+            .btn-group .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .filter-tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .filter-tab {
+                flex: none;
+                white-space: nowrap;
+            }
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-box {
+                min-width: 0;
+            }
+            .date-filter input {
+                flex: 1 1 130px;
+            }
+            .date-filter .btn,
+            .date-filter a.btn {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+            .pagination-bar {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .pagination {
+                justify-content: center;
             }
         }
     </style>
@@ -602,11 +710,17 @@ $guias = $stmt->fetchAll();
     <!-- MAIN -->
     <main class="main-content">
         <header class="header">
-            <h1>📦 Gestión de Embarques</h1>
+            <div class="header-left">
+                <button type="button" class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menú">
+                    <i class='bx bx-menu'></i>
+                </button>
+                <h1>📦 Gestión de Embarques</h1>
+            </div>
             <div>
                 <a href="../../dashboard.php" class="btn btn-back">← Volver</a>
             </div>
         </header>
+        <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
         <div class="content">
                 <!-- FILTER TABS -->
@@ -730,13 +844,11 @@ $guias = $stmt->fetchAll();
                                                title="Descargar Excel">
                                                 📊
                                             </a>
-                                            <?php if ($guia['estado_envio'] === 'PENDIENTE'): ?>
                                             <button onclick="abrirModalCorreo(<?php echo $guia['id_guia']; ?>)"
-                                                    class="btn btn-small btn-email"
-                                                    title="Enviar por correo">
+                                                    class="btn btn-small btn-email<?php echo $guia['estado_envio'] === 'ENVIADO' ? ' btn-email-outline' : ''; ?>"
+                                                    title="<?php echo $guia['estado_envio'] === 'ENVIADO' ? 'Reenviar por correo' : 'Enviar por correo'; ?>">
                                                 📧
                                             </button>
-                                            <?php endif; ?>
                                             <button onclick="abrirModalEditar(<?php echo $guia['id_guia']; ?>)"
                                                class="btn btn-small btn-edit"
                                                title="Editar">
@@ -875,6 +987,11 @@ $guias = $stmt->fetchAll();
 
     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
     <script>
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('mobile-open');
+            document.querySelector('.sidebar-backdrop').classList.toggle('show');
+        }
+
         function abrirModalCorreo(idGuia) {
             document.getElementById('correo_id_guia').value = idGuia;
             document.getElementById('modalCorreo').style.display = 'block';
