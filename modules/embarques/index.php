@@ -313,7 +313,8 @@ $guias = $stmt->fetchAll();
         }
 
         table {
-            width: 100%;
+            width: auto;
+            max-width: 100%;
             border-collapse: collapse;
         }
 
@@ -335,11 +336,10 @@ $guias = $stmt->fetchAll();
             font-size: 0.9rem;
         }
 
-        /* Columnas de contenido corto: se ajustan a su contenido en vez de
-           repartirse el ancho sobrante de la tabla (N° Guía, Documento, etc.) */
+        /* Columnas de contenido corto: nunca deben partirse en dos líneas
+           (N° Guía, Documento, Valor USD, Estado, Fecha, Acciones) */
         th.col-fit,
         td.col-fit {
-            width: 1%;
             white-space: nowrap;
         }
 
