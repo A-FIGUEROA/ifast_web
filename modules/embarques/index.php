@@ -514,32 +514,76 @@ $guias = $stmt->fetchAll();
         }
 
         /* PAGINATION */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .pagination-info {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
         .pagination {
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
         .pagination a,
         .pagination span {
-            padding: 8px 15px;
-            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border-radius: 7px;
             text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
             color: #2c3e50;
-            background: #ecf0f1;
+            background: transparent;
             transition: all 0.3s;
         }
 
-        .pagination a:hover {
-            background: #00509d;
-            color: white;
+        .pagination a.page-num:hover {
+            background: #ecf0f1;
         }
 
         .pagination .active {
             background: linear-gradient(135deg, #00296b 0%, #00509d 100%);
             color: white;
+        }
+
+        .pagination .page-nav {
+            color: #00509d;
+            background: #ecf0f1;
+        }
+
+        .pagination a.page-nav:hover {
+            background: #00509d;
+            color: white;
+        }
+
+        .pagination .page-nav.disabled {
+            color: #b0b8bd;
+            background: #f5f7fa;
+            cursor: default;
+        }
+
+        .pagination .page-dots {
+            color: #b0b8bd;
+            font-weight: 700;
+            min-width: 0;
+            padding: 0 2px;
         }
 
         @media (max-width: 768px) {
@@ -717,18 +761,44 @@ $guias = $stmt->fetchAll();
 
                         <!-- PAGINATION -->
                         <?php if ($paginacion['total_paginas'] > 1): ?>
-                        <div class="pagination">
-                            <?php
-                            $query_params = $_GET;
-                            for ($i = 1; $i <= $paginacion['total_paginas']; $i++):
-                                $query_params['pagina'] = $i;
-                                $query_string = http_build_query($query_params);
-                            ?>
-                                <a href="?<?php echo $query_string; ?>"
-                                   class="<?php echo $i === $pagina ? 'active' : ''; ?>">
-                                    <?php echo $i; ?>
-                                </a>
-                            <?php endfor; ?>
+                        <div class="pagination-bar">
+                            <div class="pagination-info">
+                                Mostrando <strong><?php echo $paginacion['offset'] + 1; ?>–<?php echo min($paginacion['offset'] + $paginacion['registros_por_pagina'], $total_guias); ?></strong>
+                                de <strong><?php echo $total_guias; ?></strong>
+                            </div>
+                            <div class="pagination">
+                                <?php
+                                $query_params = $_GET;
+
+                                if ($pagina > 1):
+                                    $query_params['pagina'] = $pagina - 1;
+                                ?>
+                                    <a href="?<?php echo http_build_query($query_params); ?>" class="page-nav">‹ Anterior</a>
+                                <?php else: ?>
+                                    <span class="page-nav disabled">‹ Anterior</span>
+                                <?php endif; ?>
+
+                                <?php foreach (generarRangoPaginas($pagina, $paginacion['total_paginas']) as $item): ?>
+                                    <?php if ($item === '...'): ?>
+                                        <span class="page-dots">…</span>
+                                    <?php else:
+                                        $query_params['pagina'] = $item;
+                                    ?>
+                                        <a href="?<?php echo http_build_query($query_params); ?>"
+                                           class="page-num <?php echo $item === $pagina ? 'active' : ''; ?>">
+                                            <?php echo $item; ?>
+                                        </a>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+
+                                <?php if ($pagina < $paginacion['total_paginas']):
+                                    $query_params['pagina'] = $pagina + 1;
+                                ?>
+                                    <a href="?<?php echo http_build_query($query_params); ?>" class="page-nav">Siguiente ›</a>
+                                <?php else: ?>
+                                    <span class="page-nav disabled">Siguiente ›</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <?php endif; ?>
 

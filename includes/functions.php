@@ -567,6 +567,25 @@ function paginar($total_registros, $registros_por_pagina, $pagina_actual) {
     ];
 }
 
+// Función para generar un rango corto de páginas con "..." para el resto
+// Ej: pagina_actual=5, total_paginas=20 -> [1, '...', 4, 5, 6, '...', 20]
+function generarRangoPaginas($pagina_actual, $total_paginas, $delta = 1) {
+    $rango = [];
+
+    for ($i = 1; $i <= $total_paginas; $i++) {
+        $esBorde = ($i === 1 || $i === $total_paginas);
+        $esVecino = ($i >= $pagina_actual - $delta && $i <= $pagina_actual + $delta);
+
+        if ($esBorde || $esVecino) {
+            $rango[] = $i;
+        } elseif (end($rango) !== '...') {
+            $rango[] = '...';
+        }
+    }
+
+    return $rango;
+}
+
 // Función para obtener estadísticas de embarques por usuario
 function obtenerEstadisticasEmbarquesPorUsuario($conn) {
     $estadisticas = [];
