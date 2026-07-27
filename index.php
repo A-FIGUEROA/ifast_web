@@ -240,9 +240,24 @@
                 <img src="assets/logo/login_banner.jpg" alt="iFast Banner">
             </div>
         </div>
-                            class="form-control" 
-                            id="email" 
-                            name="email" 
+        <div class="login-right">
+            <div class="login-header">
+                <h2>Bienvenido</h2>
+                <p>Ingresa tus credenciales para continuar</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Correo</label>
+                    <div class="input-wrapper">
+                        <i>✉️</i>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
                             placeholder="correo@ejemplo.com"
                             required
                         >
