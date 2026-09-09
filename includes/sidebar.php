@@ -19,6 +19,7 @@ $is_guias = ($current_dir === 'guias');
 $is_reportes         = ($current_dir === 'reportes');
 $is_correos_masivos  = ($current_dir === 'correos_masivos');
 $is_postulantes      = ($current_dir === 'postulantes');
+$is_reclamos         = ($current_dir === 'reclamos');
 
 // Determinar la ruta base según desde dónde se incluye
 $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
@@ -167,6 +168,12 @@ $base_path = ($current_page === 'dashboard.php') ? '' : '../../';
                     <i><box-icon name='mail-send' color='#FDC500' size='32px'></box-icon></i>
                     <span><h3>Correos Masivos</h3></span>
                 </a>
+                <?php if ($tipo_usuario === 'ADMIN'): ?>
+                <a href="<?php echo $base_path; ?>modules/reclamos/index.php" class="menu-item <?php echo $is_reclamos ? 'active' : ''; ?>">
+                    <i><box-icon type='solid' name='message-square-detail' color='#FDC500' size='32px'></box-icon></i>
+                    <span><h3>Reclamos</h3></span>
+                </a>
+                <?php endif; ?>
             </div>
 
             <!-- SECCIÓN REPORTES (SOLO ADMIN) -->
