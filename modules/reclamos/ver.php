@@ -21,58 +21,67 @@ if ($id <= 0) {
 
 $error_envio = '';
 
-// Guardar estado / respuesta
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nuevo_estado = isset($_POST['estado']) ? limpiarDatos($_POST['estado']) : '';
-    $nueva_respuesta = isset($_POST['respuesta_proveedor']) ? trim($_POST['respuesta_proveedor']) : '';
-    $estados_validos = ['pendiente', 'en_proceso', 'atendido'];
+try {
+    // Guardar estado / respuesta
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $nuevo_estado = isset($_POST['estado']) ? limpiarDatos($_POST['estado']) : '';
+        $nueva_respuesta = isset($_POST['respuesta_proveedor']) ? trim($_POST['respuesta_proveedor']) : '';
+        $estados_validos = ['pendiente', 'en_proceso', 'atendido'];
 
-    if (in_array($nuevo_estado, $estados_validos)) {
-        // Traer la respuesta actual para saber si el texto cambió (evita reenviar el mismo correo)
-        $stmt = $conn->prepare("SELECT respuesta_proveedor, consumidor_email, consumidor_nombres, codigo, tipo FROM libro_reclamaciones WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $actual = $stmt->fetch();
-
-        $respuesta_es_nueva = $nueva_respuesta !== '' && $nueva_respuesta !== trim((string)$actual['respuesta_proveedor']);
-
-        if ($respuesta_es_nueva) {
-            $stmt = $conn->prepare("UPDATE libro_reclamaciones SET estado = :estado, respuesta_proveedor = :respuesta, fecha_respuesta = NOW() WHERE id = :id");
-            $stmt->bindParam(':estado', $nuevo_estado);
-            $stmt->bindParam(':respuesta', $nueva_respuesta);
+        if (in_array($nuevo_estado, $estados_validos)) {
+            // Traer la respuesta actual para saber si el texto cambió (evita reenviar el mismo correo)
+            $stmt = $conn->prepare("SELECT respuesta_proveedor, consumidor_email, consumidor_nombres, codigo, tipo FROM libro_reclamaciones WHERE id = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
+            $actual = $stmt->fetch();
 
-            $enviado = enviarRespuestaCliente(
-                $actual['consumidor_email'],
-                $actual['consumidor_nombres'],
-                $actual['codigo'],
-                $actual['tipo'],
-                $nueva_respuesta
-            );
+            $respuesta_es_nueva = $nueva_respuesta !== '' && $nueva_respuesta !== trim((string)$actual['respuesta_proveedor']);
 
-            if (!$enviado) {
-                $error_envio = 'La respuesta se guardó, pero no se pudo enviar el correo al cliente. Verifica la conexión SMTP.';
+            if ($respuesta_es_nueva) {
+                $stmt = $conn->prepare("UPDATE libro_reclamaciones SET estado = :estado, respuesta_proveedor = :respuesta, fecha_respuesta = NOW() WHERE id = :id");
+                $stmt->bindParam(':estado', $nuevo_estado);
+                $stmt->bindParam(':respuesta', $nueva_respuesta);
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
+
+                $enviado = enviarRespuestaCliente(
+                    $actual['consumidor_email'],
+                    $actual['consumidor_nombres'],
+                    $actual['codigo'],
+                    $actual['tipo'],
+                    $nueva_respuesta
+                );
+
+                if (!$enviado) {
+                    $error_envio = 'La respuesta se guardó, pero no se pudo enviar el correo al cliente. Verifica la conexión SMTP.';
+                }
+            } else {
+                $stmt = $conn->prepare("UPDATE libro_reclamaciones SET estado = :estado WHERE id = :id");
+                $stmt->bindParam(':estado', $nuevo_estado);
+                $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+                $stmt->execute();
             }
-        } else {
-            $stmt = $conn->prepare("UPDATE libro_reclamaciones SET estado = :estado WHERE id = :id");
-            $stmt->bindParam(':estado', $nuevo_estado);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
+        }
+
+        if ($error_envio === '') {
+            header("Location: ver.php?id={$id}&updated=1");
+            exit;
         }
     }
 
-    if ($error_envio === '') {
-        header("Location: ver.php?id={$id}&updated=1");
-        exit;
-    }
+    // Obtener reclamo
+    $stmt = $conn->prepare("SELECT * FROM libro_reclamaciones WHERE id = :id LIMIT 1");
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    $r = $stmt->fetch();
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo '<div style="font-family:monospace;background:#fdecea;color:#c62828;padding:30px;margin:30px;border-radius:10px;white-space:pre-wrap;">'
+        . "ERROR DE BASE DE DATOS EN modules/reclamos/ver.php:\n\n"
+        . htmlspecialchars($e->getMessage())
+        . '</div>';
+    exit;
 }
-
-// Obtener reclamo
-$stmt = $conn->prepare("SELECT * FROM libro_reclamaciones WHERE id = :id LIMIT 1");
-$stmt->bindParam(':id', $id, PDO::PARAM_INT);
-$stmt->execute();
-$r = $stmt->fetch();
 
 if (!$r) {
     header('Location: index.php');

@@ -35,31 +35,40 @@ if ($filtro_estado === 'VENCIDOS') {
     $params[':estado'] = $filtro_estado;
 }
 
-// Total
-$stmt = $conn->prepare("SELECT COUNT(*) as total FROM libro_reclamaciones $where");
-foreach ($params as $k => $v) $stmt->bindValue($k, $v);
-$stmt->execute();
-$total = $stmt->fetch()['total'];
+try {
+    // Total
+    $stmt = $conn->prepare("SELECT COUNT(*) as total FROM libro_reclamaciones $where");
+    foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->execute();
+    $total = $stmt->fetch()['total'];
 
-$paginacion = paginar($total, $registros_por_pagina, $pagina);
+    $paginacion = paginar($total, $registros_por_pagina, $pagina);
 
-// Listado
-$stmt = $conn->prepare("SELECT * FROM libro_reclamaciones $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
-foreach ($params as $k => $v) $stmt->bindValue($k, $v);
-$stmt->bindValue(':limit',  $paginacion['registros_por_pagina'], PDO::PARAM_INT);
-$stmt->bindValue(':offset', $paginacion['offset'],               PDO::PARAM_INT);
-$stmt->execute();
-$reclamos = $stmt->fetchAll();
+    // Listado
+    $stmt = $conn->prepare("SELECT * FROM libro_reclamaciones $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+    foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+    $stmt->bindValue(':limit',  $paginacion['registros_por_pagina'], PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $paginacion['offset'],               PDO::PARAM_INT);
+    $stmt->execute();
+    $reclamos = $stmt->fetchAll();
 
-// Conteos por estado
-$stmt_conteos = $conn->query("SELECT estado, COUNT(*) as c FROM libro_reclamaciones GROUP BY estado");
-$conteos = [];
-foreach ($stmt_conteos->fetchAll() as $row) {
-    $conteos[$row['estado']] = $row['c'];
+    // Conteos por estado
+    $stmt_conteos = $conn->query("SELECT estado, COUNT(*) as c FROM libro_reclamaciones GROUP BY estado");
+    $conteos = [];
+    foreach ($stmt_conteos->fetchAll() as $row) {
+        $conteos[$row['estado']] = $row['c'];
+    }
+
+    $stmt_vencidos = $conn->query("SELECT COUNT(*) as c FROM libro_reclamaciones WHERE fecha_limite_respuesta < CURDATE() AND estado <> 'atendido'");
+    $conteo_vencidos = $stmt_vencidos->fetch()['c'];
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo '<div style="font-family:monospace;background:#fdecea;color:#c62828;padding:30px;margin:30px;border-radius:10px;white-space:pre-wrap;">'
+        . "ERROR DE BASE DE DATOS EN modules/reclamos/index.php:\n\n"
+        . htmlspecialchars($e->getMessage())
+        . '</div>';
+    exit;
 }
-
-$stmt_vencidos = $conn->query("SELECT COUNT(*) as c FROM libro_reclamaciones WHERE fecha_limite_respuesta < CURDATE() AND estado <> 'atendido'");
-$conteo_vencidos = $stmt_vencidos->fetch()['c'];
 
 $estados_colores = [
     'pendiente'  => ['bg' => '#e3f2fd', 'color' => '#1565c0', 'label' => 'Pendiente'],
