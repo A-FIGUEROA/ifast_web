@@ -53,7 +53,7 @@ try {
     $mail->Host       = 'ifast.com.pe';
     $mail->SMTPAuth   = true;
     $mail->Username   = 'facturacion@ifast.com.pe';
-    $mail->Password   = 'B#mmQYyp@=;kSARF';
+    $mail->Password   = 'vXTXGbqdb(8%xop+';
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
     $mail->Port       = 465;
     $mail->CharSet    = 'UTF-8';
